@@ -90,15 +90,21 @@ enum Scanner {
         return .repository
     }
 
-    /// Main repository path for a linked worktree, from its `.git` file.
-    static func parentRepository(ofWorktree path: String) -> String? {
+    /// Where a linked worktree's `.git` file points.
+    static func gitdirTarget(ofWorktree path: String) -> String? {
         let dotGit = URL(fileURLWithPath: path).appending(path: ".git")
         guard let contents = try? String(contentsOf: dotGit, encoding: .utf8),
               let line = contents.split(separator: "\n").first(where: { $0.hasPrefix("gitdir:") })
         else { return nil }
         let gitdir = line.dropFirst("gitdir:".count).trimmingCharacters(in: .whitespaces)
-        guard let range = gitdir.range(of: "/.git/worktrees/") else { return nil }
-        return normalize(String(gitdir[..<range.lowerBound]))
+        return normalize(gitdir.hasPrefix("/") ? gitdir : (path as NSString).appendingPathComponent(gitdir))
+    }
+
+    /// Main repository path for a linked worktree, from its `.git` file.
+    static func parentRepository(ofWorktree path: String) -> String? {
+        guard let gitdir = gitdirTarget(ofWorktree: path),
+              let range = gitdir.range(of: "/.git/worktrees/") else { return nil }
+        return String(gitdir[..<range.lowerBound])
     }
 
     // MARK: Folders
@@ -134,7 +140,11 @@ enum Scanner {
             info.commonDir = dirLines[1]
         }
 
-        let status = await Git.run(path, ["status", "--porcelain=v2", "--branch", "--show-stash", "--untracked-files=normal"])
+        // If git can't say which filters the repository defines, don't read through any of them.
+        let filterOverrides = await untrustedFilterOverrides(path)
+        let status = filterOverrides == nil ? ShellResult(status: -1, stdout: "", stderr: "") : await Git.run(path, [
+            "status", "--porcelain=v2", "--branch", "--show-stash", "--untracked-files=normal", "--ignore-submodules=all",
+        ], overrides: filterOverrides ?? [])
         var sawAheadBehind = false
         for line in status.lines {
             if line.hasPrefix("# ") {
@@ -227,13 +237,38 @@ enum Scanner {
             }
         }
 
-        if full {
+        // Branches and worktrees only for a plain repository whose data lives in its own `.git`:
+        // a real folder (not a symlink) that git agrees is both its git dir and common dir.
+        // Otherwise a symlink or `commondir` file could borrow another repository's.
+        let ownGitDir = normalize(path) + "/.git"
+        let gitFolderType = (try? FileManager.default.attributesOfItem(atPath: ownGitDir))?[.type] as? FileAttributeType
+        if full, gitFolderType == .typeDirectory,
+           info.gitDir.map(normalize) == ownGitDir, info.commonDir.map(normalize) == ownGitDir {
             await scanBranches(path: path, into: &info)
             await scanWorktrees(path: path, into: &info)
         }
 
         let activity = activityDate(path: path, info: info, changedPaths: changedPaths)
         return CheckoutScan(git: info, activity: activity)
+    }
+
+    /// `git status` re-reads changed files through any clean filter `.gitattributes` names.
+    /// Filters defined in the user's global or system config (git-lfs, say) are trusted; ones
+    /// defined by the repository itself are switched off for Grove's read.
+    private static func untrustedFilterOverrides(_ path: String) async -> [(key: String, value: String)]? {
+        guard let keys = await Git.repositoryConfig(path, matching: #"^filter\..*\.(clean|smudge|process)$"#) else { return nil }
+        var drivers = Set<String>()
+        for key in keys {
+            guard key.hasPrefix("filter."),
+                  let variable = ["clean", "smudge", "process"].first(where: { key.hasSuffix(".\($0)") }),
+                  key.count > "filter.".count + variable.count + 1
+            else { return nil }
+            drivers.insert(String(key.dropFirst("filter.".count).dropLast(variable.count + 1)))
+        }
+        return drivers.sorted().flatMap { name in
+            ["clean", "smudge", "process"].map { (key: "filter.\(name).\($0)", value: "") }
+                + [(key: "filter.\(name).required", value: "false")]
+        }
     }
 
     private static func entryPath(_ line: Substring, fields: Int) -> String? {
@@ -320,8 +355,11 @@ enum Scanner {
             var byPath: [String: String] = [:]
             for admin in admins {
                 let gitdirFile = admin.appending(path: "gitdir")
-                guard let target = try? String(contentsOf: gitdirFile, encoding: .utf8) else { continue }
-                let worktreePath = (target.trimmingCharacters(in: .whitespacesAndNewlines) as NSString).deletingLastPathComponent
+                guard let raw = try? String(contentsOf: gitdirFile, encoding: .utf8) else { continue }
+                // Relative entries (`worktree.useRelativePaths`) are relative to the admin folder.
+                let target = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                let absolute = target.hasPrefix("/") ? target : admin.appending(path: target).path
+                let worktreePath = (absolute as NSString).deletingLastPathComponent
                 byPath[normalize(worktreePath)] = admin.path
                 // Prunable entries may point to a path that no longer resolves, so keep the raw form too.
                 byPath[(worktreePath as NSString).standardizingPath] = admin.path
@@ -329,6 +367,13 @@ enum Scanner {
             for index in records.indices {
                 records[index].adminDir = byPath[records[index].path]
             }
+        }
+        // A worktree is only this repository's if its folder points back at the same metadata.
+        // Otherwise a repository could claim any folder on disk as one of its worktrees.
+        records.removeAll { record in
+            guard !record.isPrunable, FileManager.default.fileExists(atPath: record.path) else { return false }
+            guard let admin = record.adminDir else { return true }
+            return gitdirTarget(ofWorktree: record.path) != normalize(admin)
         }
         info.worktrees = records
     }

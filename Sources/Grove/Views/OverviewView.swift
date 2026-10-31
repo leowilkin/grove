@@ -25,6 +25,9 @@ struct OverviewView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            ToastSlot().padding(.bottom, 14)
+        }
         .navigationTitle("Overview")
     }
 }

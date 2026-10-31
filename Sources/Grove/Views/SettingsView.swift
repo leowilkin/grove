@@ -19,7 +19,7 @@ struct SettingsView: View {
                         Button("Choose…", action: chooseFolder)
                     }
                 }
-                Toggle("Show worktrees stored outside \(store.rootDisplay)", isOn: $store.showExternalWorktrees)
+                Toggle("Include worktrees stored in other folders", isOn: $store.showExternalWorktrees)
             } header: {
                 Text("Location")
             } footer: {

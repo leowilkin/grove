@@ -13,14 +13,13 @@ final class GroveTests {
 
     init() async throws {
         base = FileManager.default.temporaryDirectory.appending(path: "grove-tests-\(UUID().uuidString)").path
-        AppSupport.directory = URL(fileURLWithPath: base).appending(path: "support", directoryHint: .isDirectory)
         let script = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "scripts/make-fixtures.sh").path
         let result = await Shell.run("/bin/bash", [script, base], timeout: 120)
         try #require(result.ok, "fixture script failed: \(result.stderr)")
         root = Scanner.normalize(base + "/code")
-        store = GroveStore(rootPath: root)
+        store = GroveStore(rootPath: root, support: SupportFolder(url: URL(fileURLWithPath: base + "/support")))
         await store.scan()
     }
 
@@ -105,6 +104,7 @@ final class GroveTests {
     // MARK: Removing
 
     @Test func trashingAWorktreeCanBeUndone() async throws {
+        defer { store.stop() }
         let undoManager = undoManager()
         let login = try item("nebula-api-login")
         let admin = try #require(login.adminDir)
@@ -131,6 +131,7 @@ final class GroveTests {
     }
 
     @Test func trashingARepositoryTakesItsWorktreesAndCanBeUndone() async throws {
+        defer { store.stop() }
         let undoManager = undoManager()
         let repo = try item("nebula-api")
         let plan = store.makeTrashPlan([repo.path])
@@ -164,6 +165,7 @@ final class GroveTests {
     }
 
     @Test func forgettingAMissingWorktreeCanBeUndone() async throws {
+        defer { store.stop() }
         let undoManager = undoManager()
         let missing = try item("nebula-api-experiment")
         let plan = store.makeTrashPlan([missing.path])
@@ -185,6 +187,7 @@ final class GroveTests {
     // MARK: Branches
 
     @Test func deletingStaleBranchesCanBeUndone() async throws {
+        defer { store.stop() }
         let undoManager = undoManager()
         let repo = try item("nebula-api")
         let plan = store.makeBranchPlan(scope: [repo.path])
@@ -203,6 +206,7 @@ final class GroveTests {
     }
 
     @Test func fetchAllUpdatesEveryRemote() async throws {
+        defer { store.stop() }
         store.fetchAll()
         await waitFor { store.toast != nil }
         #expect(store.toast?.message == "Fetched 5 repositories")

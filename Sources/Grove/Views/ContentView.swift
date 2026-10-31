@@ -38,18 +38,6 @@ struct ContentView: View {
         } message: {
             Text(store.errorMessage ?? "")
         }
-        .overlay(alignment: .bottom) {
-            if let toast = store.toast {
-                ToastView(toast: toast)
-                    .padding(.bottom, 20)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .task(id: toast.id) {
-                        try? await Task.sleep(for: .seconds(6))
-                        withAnimation(.smooth) { if store.toast?.id == toast.id { store.toast = nil } }
-                    }
-            }
-        }
-        .animation(.smooth(duration: 0.3), value: store.toast)
         .onAppear {
             store.undoManager = undoManager
             store.refresh()
@@ -99,6 +87,26 @@ struct ContentView: View {
     }
 }
 
+/// The current toast, if any. Lives in each detail view's bottom inset rather than an overlay
+/// on the whole window: over a table, an overlay's buttons don't get clicks.
+struct ToastSlot: View {
+    @Environment(GroveStore.self) private var store
+
+    var body: some View {
+        Group {
+            if let toast = store.toast {
+                ToastView(toast: toast)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .task(id: toast.id) {
+                        try? await Task.sleep(for: .seconds(6))
+                        withAnimation(.smooth) { if store.toast?.id == toast.id { store.toast = nil } }
+                    }
+            }
+        }
+        .animation(.smooth(duration: 0.3), value: store.toast)
+    }
+}
+
 struct ToastView: View {
     @Environment(GroveStore.self) private var store
     var toast: Toast
@@ -111,16 +119,18 @@ struct ToastView: View {
             Text(toast.message)
                 .font(.callout.weight(.medium))
             if toast.canUndo {
+                // A glass button is backed by a real AppKit control, so it gets the click even
+                // when the toast floats over the table; a borderless one lets it fall through.
                 Button("Undo") { store.undo() }
-                    .buttonStyle(.borderless)
-                    .fontWeight(.semibold)
+                    .buttonStyle(.glass)
+                    .controlSize(.small)
                     .keyboardShortcut("z", modifiers: .command)
             }
         }
         .padding(.leading, 14)
-        .padding(.trailing, toast.canUndo ? 16 : 18)
-        .padding(.vertical, 10)
-        .glassEffect(.regular, in: .capsule)
+        .padding(.trailing, toast.canUndo ? 8 : 18)
+        .padding(.vertical, toast.canUndo ? 6 : 10)
+        .glassEffect(.regular.tint(.floatingBarTint), in: .capsule)
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     }
 }

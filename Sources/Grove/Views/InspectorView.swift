@@ -341,7 +341,7 @@ private struct ItemDetail: View {
             }
             .controlSize(.large)
             if item.kind == .repository, !store.pinned.contains(item.path) {
-                Text("Pinned repositories are never suggested for cleanup.")
+                Text("Pinned repositories are never suggested for removal.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -357,15 +357,15 @@ private struct MultiSelectionDetail: View {
 
     var body: some View {
         let bytes = store.totalBytes(items)
-        let attention = items.filter(store.needsAttention)
+        let atRisk = items.filter { !store.warnings(for: $0).isEmpty }
         ScrollView {
             VStack(spacing: 18) {
                 VStack(spacing: 6) {
                     ZStack {
                         ForEach(Array(items.prefix(3).enumerated()), id: \.offset) { index, item in
                             IconTile(kind: item.kind, missing: item.isMissing, size: 48)
-                                .rotationEffect(.degrees(Double(index - 1) * 8))
-                                .offset(x: Double(index - 1) * 14)
+                                .rotationEffect(.degrees(Double(index - 1) * 5))
+                                .offset(x: Double(index - 1) * 22)
                         }
                     }
                     .frame(height: 64)
@@ -377,8 +377,8 @@ private struct MultiSelectionDetail: View {
                 }
                 .padding(.top, 6)
 
-                if !attention.isEmpty {
-                    Label("\(store.count(attention.count, "item")) \(attention.count == 1 ? "has" : "have") work that isn't saved anywhere else.", systemImage: "exclamationmark.triangle.fill")
+                if !atRisk.isEmpty {
+                    Label("\(store.count(atRisk.count, "item")) \(atRisk.count == 1 ? "has" : "have") work that may not exist anywhere else.", systemImage: "exclamationmark.triangle.fill")
                         .font(.callout)
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -150,17 +150,92 @@ enum Git {
         "LC_ALL": "C",
     ]
 
-    static func run(_ path: String, _ args: [String], timeout: TimeInterval? = 30) async -> ShellResult {
-        let result = await Shell.run(executable, ["-C", path] + args, environment: baseEnvironment, timeout: timeout)
-        if !result.ok, args.first != "merge-base" {
+    /// Grove runs git in every folder it finds, including ones nobody has vetted (an unpacked
+    /// archive with a `.git` inside, say). These override repository settings that would
+    /// otherwise let a folder's own config run programs while Grove looks at it.
+    static let hardening = [
+        "-c", "core.fsmonitor=false",
+        "-c", "core.hooksPath=/dev/null",
+        "-c", "core.pager=cat",
+        "-c", "log.showSignature=false",
+        "-c", "protocol.ext.allow=never",
+    ]
+
+    /// `overrides` go through `GIT_CONFIG_KEY_n`/`GIT_CONFIG_VALUE_n` rather than `-c`, so keys
+    /// taken from a repository (a filter named `a=b`, say) can't be misread.
+    static func run(
+        _ path: String,
+        _ args: [String],
+        overrides: [(key: String, value: String)] = [],
+        timeout: TimeInterval? = 30
+    ) async -> ShellResult {
+        var env = baseEnvironment
+        if !overrides.isEmpty {
+            env["GIT_CONFIG_COUNT"] = String(overrides.count)
+            for (index, override) in overrides.enumerated() {
+                env["GIT_CONFIG_KEY_\(index)"] = override.key
+                env["GIT_CONFIG_VALUE_\(index)"] = override.value
+            }
+        }
+        let result = await Shell.run(executable, ["-C", path] + hardening + args, environment: env, timeout: timeout)
+        if !result.ok, !["merge-base", "config"].contains(args.first) {
             debugLog("git \(args.first ?? "") in \(path) -> \(result.status): \(result.stderr.prefix(160))")
         }
         return result
     }
 
-    static func fetch(_ path: String) async -> ShellResult {
+    enum FetchOutcome: Sendable {
+        case fetched, failed, skipped
+    }
+
+    /// Settings that make fetch run a program: credential helpers, proxy, askpass and
+    /// alternate-refs commands, and the upload-pack or remote helper a remote names.
+    private static let fetchCommandKeys = #"^(credential\..*helper|core\.(gitproxy|askpass|alternaterefscommand)|remote\..*\.(uploadpack|receivepack|vcs))$"#
+
+    /// Only well-known transports, and no automatic gc or submodule fetches riding along.
+    private static let fetchHardening = [
+        "-c", "protocol.allow=never",
+        "-c", "protocol.https.allow=always",
+        "-c", "protocol.http.allow=always",
+        "-c", "protocol.ssh.allow=always",
+        "-c", "protocol.git.allow=always",
+        "-c", "protocol.file.allow=always",
+        "-c", "gc.auto=0",
+        "-c", "maintenance.auto=false",
+    ]
+
+    /// Fetches every remote. A repository whose own config sets a fetch command is skipped
+    /// rather than trusted; the same settings in the user's global config still apply.
+    static func fetch(_ path: String) async -> FetchOutcome {
+        guard let commands = await repositoryConfig(path, matching: fetchCommandKeys) else { return .skipped }
+        if !commands.isEmpty { return .skipped }
         var env = baseEnvironment
         env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o ConnectTimeout=10"
-        return await Shell.run(executable, ["-C", path, "fetch", "--all", "--prune", "--quiet"], environment: env, timeout: 60)
+        let result = await Shell.run(
+            executable,
+            ["-C", path] + hardening + fetchHardening
+                + ["fetch", "--all", "--prune", "--quiet", "--no-recurse-submodules", "--upload-pack=git-upload-pack"],
+            environment: env,
+            timeout: 60
+        )
+        return result.ok ? .fetched : .failed
+    }
+
+    /// Keys matching `pattern` that the repository sets itself (any scope but global and system).
+    /// Returns nil when git can't say, so callers can fail closed.
+    static func repositoryConfig(_ path: String, matching pattern: String) async -> [String]? {
+        let result = await run(path, ["config", "--null", "--show-scope", "--get-regexp", pattern])
+        guard result.status == 0 || result.status == 1 else { return nil }
+        // Entries are `scope NUL key LF value NUL`.
+        let fields = result.stdout.split(separator: "\0", omittingEmptySubsequences: false).dropLast()
+        guard fields.count % 2 == 0 else { return nil }
+        var keys: [String] = []
+        for index in stride(from: fields.startIndex, to: fields.endIndex, by: 2) {
+            let scope = fields[index]
+            guard scope != "global", scope != "system" else { continue }
+            let entry = fields[index + 1]
+            keys.append(String(entry.prefix { $0 != "\n" }))
+        }
+        return keys
     }
 }

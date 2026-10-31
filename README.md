@@ -22,7 +22,7 @@ A native macOS app for tending a messy `~/Code` folder: every repository, every 
 - Removing a repository takes its linked worktrees with it, and the confirmation lists every one.
 - Anything with uncommitted changes, unpushed commits, stashes, or no remote is called out before you confirm.
 - Branch cleanup never touches the default branch, the current branch, or a branch checked out in any worktree. Deleted branches can be restored with ⌘Z.
-- **Pin** a repository to keep it in the sidebar and out of every cleanup suggestion.
+- **Pin** a repository to keep it in the sidebar and out of every removal suggestion. Its stale branches can still be cleaned up.
 - **Fetch All** is the only network action, and it only runs when you click it.
 
 ## Build and run

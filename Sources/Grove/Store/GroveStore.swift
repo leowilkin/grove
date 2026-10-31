@@ -192,7 +192,7 @@ final class GroveStore {
     var rootPath: String {
         didSet {
             defaults.set(rootPath, forKey: "rootPath")
-            items = Cache.load(root: rootPath)
+            items = Cache.load(root: rootPath, from: support)
             selection = []
             refresh()
         }
@@ -205,8 +205,10 @@ final class GroveStore {
     var pinned: Set<String> { didSet { defaults.set(Array(pinned).sorted(), forKey: "pinned") } }
 
     @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored let support: SupportFolder
 
-    init(rootPath root: String? = nil) {
+    init(rootPath root: String? = nil, support: SupportFolder = .standard) {
+        self.support = support
         let d = UserDefaults.standard
         let home = FileManager.default.homeDirectoryForCurrentUser
         rootPath = root ?? d.string(forKey: "rootPath") ?? home.appending(path: "Code").path
@@ -216,7 +218,7 @@ final class GroveStore {
         terminalID = d.string(forKey: "terminalID") ?? Apps.terminals.first?.bundleID
         showExternalWorktrees = d.object(forKey: "showExternalWorktrees") as? Bool ?? true
         pinned = Set(d.stringArray(forKey: "pinned") ?? [])
-        items = Cache.load(root: rootPath)
+        items = Cache.load(root: rootPath, from: support)
         lastScanned = items.isEmpty ? nil : Date()
     }
 
@@ -282,7 +284,7 @@ final class GroveStore {
         }
     }
 
-    func items(for filter: SidebarItem) -> [GroveItem] {
+    func items(for filter: SidebarItem, searching: Bool = true) -> [GroveItem] {
         var result = visibleItems
         switch filter {
         case .overview, .all:
@@ -311,7 +313,7 @@ final class GroveStore {
         case .project(let path):
             result = result.filter { $0.path == path || $0.parentPath == path }
         }
-        return search(result)
+        return searching ? search(result) : result
     }
 
     private func search(_ list: [GroveItem]) -> [GroveItem] {
@@ -475,6 +477,11 @@ final class GroveStore {
         }
     }
 
+    /// Cancels any scan, measuring or fetch in progress.
+    func stop() {
+        scanTask?.cancel()
+    }
+
     func fetchAll() {
         guard !isBusy else { return }
         scanTask?.cancel()
@@ -482,22 +489,34 @@ final class GroveStore {
             let repos = items.filter { $0.kind == .repository && $0.hasRemote }.map(\.path)
             var done = 0
             var failures = 0
+            var skipped: [String] = []
             phase = .fetching(done: 0, total: repos.count)
-            await forEachConcurrently(repos, limit: 6, work: { await Git.fetch($0).ok }) { ok in
+            await forEachConcurrently(repos, limit: 6, work: { ($0, await Git.fetch($0)) }) { path, outcome in
                 done += 1
-                if !ok { failures += 1 }
+                switch outcome {
+                case .fetched: break
+                case .failed: failures += 1
+                case .skipped: skipped.append((path as NSString).lastPathComponent)
+                }
                 self.phase = .fetching(done: done, total: repos.count)
             }
             phase = .idle
             await scan()
-            toast = Toast(
-                message: failures == 0
-                    ? "Fetched \(count(repos.count, "repository"))"
-                    : "Fetched \(repos.count - failures) of \(repos.count) · \(failures) couldn't be reached",
-                canUndo: false
-            )
+            toast = Toast(message: fetchSummary(total: repos.count, failures: failures, skipped: skipped.sorted()), canUndo: false)
             if !Task.isCancelled { await computeSizes() }
         }
+    }
+
+    private func fetchSummary(total: Int, failures: Int, skipped: [String]) -> String {
+        if failures == 0, skipped.isEmpty { return "Fetched \(count(total, "repository"))" }
+        var parts = ["Fetched \(total - failures - skipped.count) of \(total)"]
+        if failures > 0 { parts.append("\(failures) couldn't be reached") }
+        if skipped.count == 1 {
+            parts.append("skipped \(skipped[0]), which sets its own fetch commands")
+        } else if skipped.count > 1 {
+            parts.append("skipped \(skipped.count) that set their own fetch commands")
+        }
+        return parts.joined(separator: " · ")
     }
 
     func scan() async {
@@ -570,7 +589,8 @@ final class GroveStore {
             item.git = scan.git
             item.ownActivity = scan.activity
             item.isLocked = p.record?.isLocked ?? false
-            item.adminDir = p.record?.adminDir ?? scan.git.gitDir
+            // Only metadata the parent repository itself lists; never wherever a `.git` file points.
+            item.adminDir = p.record?.adminDir
             carry(&item)
             results[item.path] = item
         }
@@ -607,7 +627,7 @@ final class GroveStore {
         selection = selection.filter { results[$0] != nil }
         lastScanned = Date()
         phase = .idle
-        Cache.save(items, root: root)
+        Cache.save(items, root: root, to: support)
     }
 
     private func computeSizes() async {
@@ -639,7 +659,8 @@ final class GroveStore {
         }
         flush()
         if case .sizing = phase { phase = .idle }
-        Cache.save(items, root: rootPath)
+        guard !Task.isCancelled else { return }
+        Cache.save(items, root: rootPath, to: support)
     }
 
     private func forEachConcurrently<T: Sendable, R: Sendable>(
@@ -691,9 +712,13 @@ final class GroveStore {
         let folders = existing.filter { path in
             !existing.contains { other in other != path && path.hasPrefix(other + "/") }
         }
+        let repositories = Set(items.filter { $0.kind == .repository }.map(\.path))
         let admins = entries.compactMap { entry -> String? in
-            guard entry.item.kind == .worktree, let parent = entry.item.parentPath, !included.contains(parent) else { return nil }
-            return entry.item.adminDir
+            guard entry.item.kind == .worktree, let parent = entry.item.parentPath,
+                  repositories.contains(parent), !included.contains(parent),
+                  let admin = entry.item.adminDir, admin.hasPrefix(parent + "/.git/worktrees/")
+            else { return nil }
+            return admin
         }
         let repair = Set(entries.compactMap { entry -> String? in
             entry.item.kind == .repository ? entry.item.path : entry.item.parentPath
@@ -702,7 +727,7 @@ final class GroveStore {
         return TrashPlan(entries: entries, folders: folders, admins: admins, repair: Array(repair), bytes: bytes)
     }
 
-    private func warnings(for item: GroveItem) -> [String] {
+    func warnings(for item: GroveItem) -> [String] {
         var list: [String] = []
         if item.isMissing { return [] }
         guard let git = item.git else {
@@ -727,11 +752,11 @@ final class GroveStore {
     func performTrash(_ plan: TrashPlan) async {
         trashPlan = nil
         do {
-            let record = try await Actions.remove(folders: plan.folders, admins: plan.admins, repair: plan.repair)
+            let record = try await Actions.remove(folders: plan.folders, admins: plan.admins, repair: plan.repair, support: support)
             let removed = Set(plan.entries.map(\.item.path))
             items.removeAll { removed.contains($0.path) }
             selection.subtract(removed)
-            Cache.save(items, root: rootPath)
+            Cache.save(items, root: rootPath, to: support)
             let n = plan.entries.count
             let message = plan.onlyForgetsMissing
                 ? "Forgot \(count(n, "missing worktree"))"
