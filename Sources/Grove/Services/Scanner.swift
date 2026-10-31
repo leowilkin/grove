@@ -90,15 +90,21 @@ enum Scanner {
         return .repository
     }
 
-    /// Main repository path for a linked worktree, from its `.git` file.
-    static func parentRepository(ofWorktree path: String) -> String? {
+    /// Where a linked worktree's `.git` file points.
+    static func gitdirTarget(ofWorktree path: String) -> String? {
         let dotGit = URL(fileURLWithPath: path).appending(path: ".git")
         guard let contents = try? String(contentsOf: dotGit, encoding: .utf8),
               let line = contents.split(separator: "\n").first(where: { $0.hasPrefix("gitdir:") })
         else { return nil }
         let gitdir = line.dropFirst("gitdir:".count).trimmingCharacters(in: .whitespaces)
-        guard let range = gitdir.range(of: "/.git/worktrees/") else { return nil }
-        return normalize(String(gitdir[..<range.lowerBound]))
+        return normalize(gitdir.hasPrefix("/") ? gitdir : (path as NSString).appendingPathComponent(gitdir))
+    }
+
+    /// Main repository path for a linked worktree, from its `.git` file.
+    static func parentRepository(ofWorktree path: String) -> String? {
+        guard let gitdir = gitdirTarget(ofWorktree: path),
+              let range = gitdir.range(of: "/.git/worktrees/") else { return nil }
+        return String(gitdir[..<range.lowerBound])
     }
 
     // MARK: Folders
@@ -134,7 +140,10 @@ enum Scanner {
             info.commonDir = dirLines[1]
         }
 
-        let status = await Git.run(path, ["status", "--porcelain=v2", "--branch", "--show-stash", "--untracked-files=normal"])
+        let filterOverrides = await untrustedFilterOverrides(path)
+        let status = await Git.run(path, filterOverrides + [
+            "status", "--porcelain=v2", "--branch", "--show-stash", "--untracked-files=normal", "--ignore-submodules=all",
+        ])
         var sawAheadBehind = false
         for line in status.lines {
             if line.hasPrefix("# ") {
@@ -236,6 +245,24 @@ enum Scanner {
         return CheckoutScan(git: info, activity: activity)
     }
 
+    /// `git status` re-reads changed files through any clean filter `.gitattributes` names.
+    /// Filters defined in the user's global or system config (git-lfs, say) are trusted; ones
+    /// defined by the repository itself are switched off for Grove's read.
+    private static func untrustedFilterOverrides(_ path: String) async -> [String] {
+        let result = await Git.run(path, ["config", "--show-scope", "--get-regexp", #"^filter\..*\.(clean|smudge|process)$"#])
+        var drivers = Set<String>()
+        for line in result.lines {
+            let parts = line.split(separator: "\t", maxSplits: 1)
+            guard parts.count == 2, !["global", "system"].contains(parts[0]) else { continue }
+            let key = parts[1].split(separator: " ", maxSplits: 1).first.map(String.init) ?? ""
+            guard key.hasPrefix("filter."), let dot = key.lastIndex(of: ".") else { continue }
+            drivers.insert(String(key[key.index(key.startIndex, offsetBy: 7)..<dot]))
+        }
+        return drivers.sorted().flatMap { name in
+            ["clean", "smudge", "process"].flatMap { ["-c", "filter.\(name).\($0)="] } + ["-c", "filter.\(name).required=false"]
+        }
+    }
+
     private static func entryPath(_ line: Substring, fields: Int) -> String? {
         let parts = line.split(separator: " ", maxSplits: fields, omittingEmptySubsequences: false)
         guard parts.count == fields + 1 else { return nil }
@@ -320,8 +347,11 @@ enum Scanner {
             var byPath: [String: String] = [:]
             for admin in admins {
                 let gitdirFile = admin.appending(path: "gitdir")
-                guard let target = try? String(contentsOf: gitdirFile, encoding: .utf8) else { continue }
-                let worktreePath = (target.trimmingCharacters(in: .whitespacesAndNewlines) as NSString).deletingLastPathComponent
+                guard let raw = try? String(contentsOf: gitdirFile, encoding: .utf8) else { continue }
+                // Relative entries (`worktree.useRelativePaths`) are relative to the admin folder.
+                let target = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                let absolute = target.hasPrefix("/") ? target : admin.appending(path: target).path
+                let worktreePath = (absolute as NSString).deletingLastPathComponent
                 byPath[normalize(worktreePath)] = admin.path
                 // Prunable entries may point to a path that no longer resolves, so keep the raw form too.
                 byPath[(worktreePath as NSString).standardizingPath] = admin.path
@@ -329,6 +359,13 @@ enum Scanner {
             for index in records.indices {
                 records[index].adminDir = byPath[records[index].path]
             }
+        }
+        // A worktree is only this repository's if its folder points back at the same metadata.
+        // Otherwise a repository could claim any folder on disk as one of its worktrees.
+        records.removeAll { record in
+            guard !record.isPrunable, FileManager.default.fileExists(atPath: record.path) else { return false }
+            guard let admin = record.adminDir else { return true }
+            return gitdirTarget(ofWorktree: record.path) != normalize(admin)
         }
         info.worktrees = records
     }

@@ -150,8 +150,19 @@ enum Git {
         "LC_ALL": "C",
     ]
 
+    /// Grove runs git in every folder it finds, including ones nobody has vetted (an unpacked
+    /// archive with a `.git` inside, say). These override repository settings that would
+    /// otherwise let a folder's own config run programs while Grove looks at it.
+    static let hardening = [
+        "-c", "core.fsmonitor=false",
+        "-c", "core.hooksPath=/dev/null",
+        "-c", "core.pager=cat",
+        "-c", "log.showSignature=false",
+        "-c", "protocol.ext.allow=never",
+    ]
+
     static func run(_ path: String, _ args: [String], timeout: TimeInterval? = 30) async -> ShellResult {
-        let result = await Shell.run(executable, ["-C", path] + args, environment: baseEnvironment, timeout: timeout)
+        let result = await Shell.run(executable, ["-C", path] + hardening + args, environment: baseEnvironment, timeout: timeout)
         if !result.ok, args.first != "merge-base" {
             debugLog("git \(args.first ?? "") in \(path) -> \(result.status): \(result.stderr.prefix(160))")
         }
@@ -161,6 +172,6 @@ enum Git {
     static func fetch(_ path: String) async -> ShellResult {
         var env = baseEnvironment
         env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes -o ConnectTimeout=10"
-        return await Shell.run(executable, ["-C", path, "fetch", "--all", "--prune", "--quiet"], environment: env, timeout: 60)
+        return await Shell.run(executable, ["-C", path] + hardening + ["fetch", "--all", "--prune", "--quiet"], environment: env, timeout: 60)
     }
 }

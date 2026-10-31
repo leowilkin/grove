@@ -570,7 +570,8 @@ final class GroveStore {
             item.git = scan.git
             item.ownActivity = scan.activity
             item.isLocked = p.record?.isLocked ?? false
-            item.adminDir = p.record?.adminDir ?? scan.git.gitDir
+            // Only metadata the parent repository itself lists; never wherever a `.git` file points.
+            item.adminDir = p.record?.adminDir
             carry(&item)
             results[item.path] = item
         }
@@ -691,8 +692,10 @@ final class GroveStore {
         let folders = existing.filter { path in
             !existing.contains { other in other != path && path.hasPrefix(other + "/") }
         }
+        let repositories = Set(items.filter { $0.kind == .repository }.map(\.path))
         let admins = entries.compactMap { entry -> String? in
-            guard entry.item.kind == .worktree, let parent = entry.item.parentPath, !included.contains(parent) else { return nil }
+            guard entry.item.kind == .worktree, let parent = entry.item.parentPath,
+                  repositories.contains(parent), !included.contains(parent) else { return nil }
             return entry.item.adminDir
         }
         let repair = Set(entries.compactMap { entry -> String? in

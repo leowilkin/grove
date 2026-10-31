@@ -48,7 +48,7 @@ enum Actions {
 
         let fm = FileManager.default
         let batch = parkingLot.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        for admin in admins where fm.fileExists(atPath: admin) {
+        for admin in admins where fm.fileExists(atPath: admin) && isWorktreeMetadata(admin) {
             let holder = batch.appending(path: UUID().uuidString, directoryHint: .isDirectory)
             try fm.createDirectory(at: holder, withIntermediateDirectories: true)
             let destination = holder.appending(path: (admin as NSString).lastPathComponent)
@@ -57,6 +57,19 @@ enum Actions {
             record.parkingBatch = batch.path
         }
         return record
+    }
+
+    /// True only for `<repo>/.git/worktrees/<id>` folders that look like git made them.
+    static func isWorktreeMetadata(_ path: String) -> Bool {
+        let fm = FileManager.default
+        let url = URL(fileURLWithPath: Scanner.normalize(path))
+        let worktrees = url.deletingLastPathComponent()
+        let gitDir = worktrees.deletingLastPathComponent()
+        return worktrees.lastPathComponent == "worktrees"
+            && fm.fileExists(atPath: gitDir.appending(path: "HEAD").path)
+            && fm.fileExists(atPath: gitDir.appending(path: "objects").path)
+            && fm.fileExists(atPath: url.appending(path: "gitdir").path)
+            && fm.fileExists(atPath: url.appending(path: "HEAD").path)
     }
 
     @concurrent
