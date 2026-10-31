@@ -2,6 +2,18 @@
 
 A native macOS app for tending a messy `~/Code` folder: every repository, every worktree (including the ones tucked away in `.claude/worktrees` or outside the folder entirely), and every loose folder that isn't in git — with a clear read on what's active, what's gone stale, and what's safe to clear out.
 
+## Install
+
+**[Download Grove.pkg](https://github.com/leowilkin/grove/releases/latest/download/Grove.pkg)** and open it. It installs Grove into Applications. Needs an Apple silicon Mac on macOS 26 or later.
+
+Releases aren't signed with a Developer ID yet, so the first time you open the installer macOS says it can't verify it. Click **Done**, then open **System Settings → Privacy & Security**, scroll down to the message about Grove.pkg, and click **Open Anyway**.
+
+Or install from the terminal, which skips that (`curl` doesn't mark the download as quarantined):
+
+```bash
+curl -LO https://github.com/leowilkin/grove/releases/latest/download/Grove.pkg && sudo installer -pkg Grove.pkg -target /
+```
+
 ## What it shows
 
 - **Overview**: disk use split by activity (active, idle, dormant, not in git), counts, and recommendations:
@@ -42,6 +54,45 @@ open build/Grove.app --args -rootPath /path/to/folder
 ```
 
 Set `GROVE_DEBUG=1` in the environment to log failing git calls to stderr.
+
+## Releasing
+
+```bash
+./scripts/build-pkg.sh 1.2.0      # builds build/Grove.pkg, stamped 1.2.0
+```
+
+Local builds are signed ad hoc, which only satisfies Gatekeeper on the Mac that built them.
+
+Pushing a tag like `v1.2.0` runs the Release workflow, which builds the installer on a macOS 26 runner and attaches `Grove.pkg` to a GitHub release for that tag. The download link above always points at the newest release. Running the workflow by hand from the Actions tab does the same but attaches the installer to the run instead of publishing it.
+
+Once the signing secrets below are set, the workflow also signs the app and installer with The Hack Foundation's Developer ID and notarizes them; without them it publishes unsigned. To set them up:
+
+1. Get a **Developer ID Application** and a **Developer ID Installer** certificate from that team into your keychain. An Apple Development certificate won't do.
+2. In Keychain Access, select both, export them together as one `.p12`, then:
+
+   ```bash
+   base64 -i developer-id.p12 | gh secret set DEVELOPER_ID_P12
+   ```
+
+   ```bash
+   gh secret set DEVELOPER_ID_P12_PASSWORD
+   ```
+
+3. For notarization, an admin creates a team key in App Store Connect under **Users and Access → Integrations → App Store Connect API** (the Developer role is enough) and downloads its `.p8`, which Apple only lets you download once:
+
+   ```bash
+   gh secret set NOTARY_KEY < AuthKey_XXXXXXXXXX.p8
+   ```
+
+   ```bash
+   gh secret set NOTARY_KEY_ID
+   ```
+
+   ```bash
+   gh secret set NOTARY_ISSUER_ID
+   ```
+
+`gh secret set` prompts for the value when nothing is piped in. The key ID is listed next to the key, and the issuer ID is shown above the list.
 
 ## Tests
 
