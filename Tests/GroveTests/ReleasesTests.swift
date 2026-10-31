@@ -24,9 +24,10 @@ struct ReleasesTests {
         #expect(release.digest == "abcdef0123")
     }
 
-    @Test func toleratesAMissingDigest() throws {
+    @Test func refusesToInstallWithoutADigest() async throws {
         let release = try Releases.parse(Data(Self.payload(assets: [("Grove.pkg", nil)]).utf8))
         #expect(release.digest == nil)
+        await #expect(throws: Releases.Failure.self) { try await Releases.download(release) }
     }
 
     @Test func refusesAReleaseWithoutTheInstaller() {

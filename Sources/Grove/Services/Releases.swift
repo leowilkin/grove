@@ -20,6 +20,7 @@ enum Releases {
     enum Failure: LocalizedError {
         case status(Int)
         case noPackage(String)
+        case noDigest
         case digestMismatch
         case untrusted
         case installFailed(String)
@@ -28,6 +29,7 @@ enum Releases {
             switch self {
             case .status(let code): "GitHub answered with status \(code)."
             case .noPackage(let version): "Grove \(version) doesn't have an installer attached yet."
+            case .noDigest: "GitHub has no checksum for this installer, so Grove can't check it. Download it from the release page instead."
             case .digestMismatch: "The download doesn't match the installer GitHub published."
             case .untrusted: "The installer isn't signed by the developer who signed this copy of Grove."
             case .installFailed(let message): message
@@ -85,7 +87,9 @@ enum Releases {
 
     /// Downloads the installer into a folder of its own and checks it's the one GitHub published.
     /// Returns its SHA-256, which the install checks again. The caller removes the folder.
+    /// Refuses up front if GitHub has no digest for it, since there'd be nothing to check against.
     static func download(_ release: Release) async throws -> (package: URL, digest: String) {
+        guard let expected = release.digest else { throw Failure.noDigest }
         let (temporary, response) = try await URLSession.shared.download(from: release.packageURL)
         let folder = FileManager.default.temporaryDirectory.appending(path: "Grove-\(release.version)-\(UUID().uuidString)")
         do {
@@ -95,7 +99,7 @@ enum Releases {
             let package = folder.appending(path: packageName)
             try FileManager.default.moveItem(at: temporary, to: package)
             let digest = try sha256(of: package)
-            if let expected = release.digest, expected != digest { throw Failure.digestMismatch }
+            guard digest == expected else { throw Failure.digestMismatch }
             return (package, digest)
         } catch {
             try? FileManager.default.removeItem(at: temporary)
@@ -139,10 +143,12 @@ enum Releases {
     /// Runs the installer as root, behind the system's password prompt. Throws `CancellationError`
     /// if the prompt is dismissed. The package is first copied somewhere only root can write and
     /// its digest checked again there, so nothing can swap it between the checks and the install.
+    /// That's a folder in /private/tmp, not `$TMPDIR`: the prompt keeps the user's environment, and
+    /// their temp folder is theirs, so anything running as them could rename root's folder away.
     static func install(_ package: URL, digest: String, version: String) async throws {
         let shell = """
             set -e
-            dir=$(/usr/bin/mktemp -d)
+            dir=$(/usr/bin/mktemp -d /private/tmp/grove-update.XXXXXX)
             trap '/bin/rm -rf "$dir"' EXIT
             /bin/cp "$1" "$dir/Grove.pkg"
             if [ "$(/usr/bin/openssl dgst -sha256 -r "$dir/Grove.pkg" | /usr/bin/cut -d' ' -f1)" != "$2" ]; then
