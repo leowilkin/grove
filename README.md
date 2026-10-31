@@ -14,6 +14,8 @@ Or install from the terminal, which skips that (`curl` doesn't mark the download
 curl -LO https://github.com/leowilkin/grove/releases/latest/download/Grove.pkg && sudo installer -pkg Grove.pkg -target /
 ```
 
+After that Grove keeps itself up to date. Once a day the copy in Applications checks GitHub for a newer release and offers to install it. Installing asks for your password, since it replaces Grove in Applications, and Grove reopens when it's done. Turn the daily check off in Settings, or check any time with **Grove → Check for Updates…**. Version 1.0.0 predates this, so update from it once by hand.
+
 ## What it shows
 
 - **Overview**: disk use split by activity (active, idle, dormant, not in git), counts, and recommendations:
@@ -35,7 +37,8 @@ curl -LO https://github.com/leowilkin/grove/releases/latest/download/Grove.pkg &
 - Anything with uncommitted changes, unpushed commits, stashes, or no remote is called out before you confirm.
 - Branch cleanup never touches the default branch, the current branch, or a branch checked out in any worktree. Deleted branches can be restored with ⌘Z.
 - **Pin** a repository to keep it in the sidebar and out of every removal suggestion. Its stale branches can still be cleaned up.
-- **Fetch All** is the only network action, and it only runs when you click it.
+- **Fetch All** is the only network action on your repositories, and it only runs when you click it. Otherwise Grove only asks GitHub once a day whether there's a new release of itself (you can turn that off), and installs one only when you say so.
+- An update is checked against the SHA-256 GitHub records for the release's installer before it's installed, and again after it's copied somewhere only the installer can write. Once releases are signed, an update also has to be signed by the same team as the copy you're running.
 
 ## Build and run
 
@@ -64,6 +67,8 @@ Set `GROVE_DEBUG=1` in the environment to log failing git calls to stderr.
 Local builds are signed ad hoc, which only satisfies Gatekeeper on the Mac that built them.
 
 Pushing a tag like `v1.2.0` runs the Release workflow, which builds the installer on a macOS 26 runner and attaches `Grove.pkg` to a GitHub release for that tag. The download link above always points at the newest release. Running the workflow by hand from the Actions tab does the same but attaches the installer to the run instead of publishing it.
+
+The app finds updates through GitHub's latest release, so keep tags in the `v1.2.0` form and the installer named `Grove.pkg`. Drafts and prereleases are never offered, so mark a release as a prerelease to hold it back from existing installs.
 
 Once the signing secrets below are set, the workflow also signs the app and installer with The Hack Foundation's Developer ID and notarizes them; without them it publishes unsigned. To set them up:
 

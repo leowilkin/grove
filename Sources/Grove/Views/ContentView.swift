@@ -2,7 +2,9 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(GroveStore.self) private var store
+    @Environment(Updater.self) private var updater
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         @Bindable var store = store
@@ -43,6 +45,7 @@ struct ContentView: View {
             store.refresh()
         }
         .onChange(of: undoManager) { store.undoManager = undoManager }
+        .task { await updater.checkAutomatically { openWindow(id: "update") } }
     }
 
     private var subtitle: String {
