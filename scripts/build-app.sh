@@ -1,0 +1,29 @@
+#!/bin/bash
+# Builds build/Grove.app. Pass --install to copy it into ~/Applications.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+swift build -c release --arch arm64
+
+APP=build/Grove.app
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$(swift build -c release --arch arm64 --show-bin-path)/Grove" "$APP/Contents/MacOS/Grove"
+cp Resources/Info.plist "$APP/Contents/Info.plist"
+
+if [ ! -f build/AppIcon.icns ] || [ scripts/make-icon.swift -nt build/AppIcon.icns ]; then
+  rm -rf build/AppIcon.iconset
+  swift scripts/make-icon.swift build/AppIcon.iconset
+  iconutil -c icns build/AppIcon.iconset -o build/AppIcon.icns
+fi
+cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+
+codesign --force --sign - "$APP" >/dev/null
+echo "Built $APP"
+
+if [ "${1:-}" = "--install" ]; then
+  mkdir -p ~/Applications
+  rm -rf ~/Applications/Grove.app
+  cp -R "$APP" ~/Applications/Grove.app
+  echo "Installed to ~/Applications/Grove.app"
+fi
