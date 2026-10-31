@@ -35,6 +35,18 @@ final class GroveTests {
         await Git.run(path, args)
     }
 
+    private func sh(_ script: String) async throws {
+        let setup = """
+        set -euo pipefail
+        export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+        export GIT_AUTHOR_NAME="Fern Example" GIT_AUTHOR_EMAIL="fern@example.com"
+        export GIT_COMMITTER_NAME="Fern Example" GIT_COMMITTER_EMAIL="fern@example.com"
+
+        """
+        let result = await Shell.run("/bin/bash", ["-c", setup + script], timeout: 60)
+        try #require(result.ok, "\(result.stderr)")
+    }
+
     private func waitFor(_ condition: () -> Bool) async {
         for _ in 0..<200 where !condition() {
             try? await Task.sleep(for: .milliseconds(50))
@@ -58,7 +70,7 @@ final class GroveTests {
 
     @Test func classifiesEveryKindOfCheckout() throws {
         #expect(store.items.filter { $0.kind == .repository }.count == 8)
-        #expect(store.items.filter { $0.kind == .worktree }.count == 6)
+        #expect(store.items.filter { $0.kind == .worktree }.count == 7)
         #expect(store.items.filter { $0.kind == .folder }.count == 2)
 
         let login = try item("nebula-api-login")
@@ -85,6 +97,8 @@ final class GroveTests {
 
         let external = try item("nebula-cache-spike")
         #expect(!external.isInsideRoot)
+        #expect(external.git?.isMerged == false, "never carried commits of its own")
+        #expect(store.cleanupReason(external) == .idleWorktree)
 
         #expect(try item("acme-portal").group == "clients")
         #expect(store.cleanupReason(try item("pixel-garden")) == .dormantRepository)
@@ -92,6 +106,39 @@ final class GroveTests {
         #expect(store.cleanupReason(try item("ledger-cli")) == nil, "has an unpushed commit")
         #expect(try item("ledger-cli").git?.unpushed == 1)
         #expect(try item("recipe-notes").git?.remoteURL == nil)
+    }
+
+    @Test func aFreshAgentWorktreeIsNotOfferedForRemoval() async throws {
+        let repo = root + "/nebula-api"
+        let fresh = try item("sleepy-otter")
+        #expect(fresh.git?.headSHA == (try item("nebula-api")).git?.headSHA, "sits at main's tip")
+        #expect(fresh.git?.isMerged == false)
+        #expect(store.cleanupReason(fresh) == nil)
+        #expect(!store.items(for: .cleanup).contains { $0.id == fresh.id })
+
+        // Catching up with main isn't work of its own either.
+        try await sh("""
+        cd '\(repo)'
+        echo more >> notes.txt
+        git commit -qam "More notes"
+        git push -q origin main
+        git -C '\(fresh.path)' merge -q --ff-only origin/main
+        """)
+        await store.scan()
+        #expect(try item("sleepy-otter").git?.isMerged == false)
+        #expect(store.cleanupReason(try item("sleepy-otter")) == nil)
+
+        // Once a commit made on the branch lands in main, the worktree is finished.
+        try await sh("""
+        cd '\(fresh.path)'
+        echo done >> notes.txt
+        git commit -qam "Finish the otter work"
+        cd '\(repo)'
+        git merge -q --ff-only agent/sleepy-otter
+        git push -q origin main
+        """)
+        await store.scan()
+        #expect(store.cleanupReason(try item("sleepy-otter")) == .merged)
     }
 
     @Test func repeatedScansAgree() async throws {
@@ -138,9 +185,9 @@ final class GroveTests {
 
         let names = Set(plan.entries.map(\.item.name))
         #expect(names == ["nebula-api", "nebula-api-login", "nebula-api-search", "nebula-api-pagination",
-                          "nebula-cache-spike", "nebula-api-experiment", "review-pr-42"])
-        // The nested worktree goes along inside the repository folder; nothing to park separately.
-        #expect(!plan.folders.contains { $0.hasSuffix("review-pr-42") })
+                          "nebula-cache-spike", "nebula-api-experiment", "review-pr-42", "sleepy-otter"])
+        // Nested worktrees go along inside the repository folder; nothing to park separately.
+        #expect(!plan.folders.contains { $0.hasSuffix("review-pr-42") || $0.hasSuffix("sleepy-otter") })
         #expect(plan.admins.isEmpty)
         #expect(plan.warningCount > 0, "the search worktree has uncommitted work")
 
@@ -161,7 +208,7 @@ final class GroveTests {
         // The restored items come back into the list once the follow-up scan finishes.
         await waitFor { store.phase == .idle && store.items.contains { $0.name == "nebula-api-search" } }
         #expect(store.items.contains { $0.name == "nebula-api-search" })
-        #expect(store.items.count == 16)
+        #expect(store.items.count == 17)
     }
 
     @Test func forgettingAMissingWorktreeCanBeUndone() async throws {

@@ -67,6 +67,9 @@ commit "$R/.claude/worktrees/review-pr-42" 30 "Review notes"
 git -C "$R/.claude/worktrees/review-pr-42" push -qu origin review/pr-42
 age "$R/.claude/worktrees/review-pr-42" 30
 
+# An agent's worktree just created on a new branch at main's tip, before its first commit.
+git -C "$R" worktree add -q -b agent/sleepy-otter "$R/.claude/worktrees/sleepy-otter"
+
 git -C "$R" worktree add -q -b spike/cache "$ROOT/elsewhere/nebula-cache-spike"
 age "$ROOT/elsewhere/nebula-cache-spike" 40
 
