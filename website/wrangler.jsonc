@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // A static site: no Worker code, Cloudflare serves the built files directly.
+  "name": "grove",
+  "compatibility_date": "2026-10-23",
+  "assets": {
+    "directory": "./dist"
+  },
+  "routes": [{ "pattern": "grove.leowilkin.com", "custom_domain": true }]
+}

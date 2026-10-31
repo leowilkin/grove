@@ -1,0 +1,81 @@
+---
+import CellWord from './CellWord.astro';
+import { kept, items } from '../lib/cells';
+import { downloadUrl, repoUrl, requirement } from '../site';
+---
+
+<section id="download" class="sheet sheet-green close" aria-labelledby="close-title">
+  <div class="wrap sheet-body">
+    <CellWord
+      word="TIDY"
+      list={kept}
+      class="tidy"
+      label={`The word Tidy, built from the ${kept.length} items Grove keeps once the demo folder is cleared.`}
+    />
+    <div class="end">
+      <h2 id="close-title">Your grove is tidy.</h2>
+      <p class="lede">
+        That’s what Grove says once there’s nothing left to clear. The {kept.length} items above are what the demo
+        folder keeps; see what yours says.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href={downloadUrl}>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12"></path>
+          </svg>
+          Download for macOS
+        </a>
+        <span class="req">{requirement}</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="wrap foot">
+    <p>Grove, a place to tend your repositories.</p>
+    <p>The demo folder on this page is fictional. Its {items.length} items and every number about them come from Grove’s own scan of it.</p>
+    {repoUrl && <a href={repoUrl}>Source on GitHub</a>}
+  </footer>
+</section>
+
+<style>
+  .close .sheet-body {
+    padding-top: calc(var(--m) * 3);
+  }
+
+  .end {
+    margin-top: calc(var(--m) * 1.5);
+  }
+
+  .end .lede {
+    margin-top: calc(var(--m) * 0.5);
+    max-width: 30em;
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1.25rem;
+    margin-top: calc(var(--m) * 0.75);
+  }
+
+  .req {
+    color: var(--fg-2);
+    font-size: 0.95rem;
+  }
+
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    justify-content: space-between;
+    padding-block: calc(var(--m) * 0.6) calc(var(--m) * 1);
+    border-top: 1px solid var(--line-strong);
+    font-size: 0.88rem;
+    color: var(--fg-2);
+  }
+
+  .foot p:nth-child(2) {
+    max-width: 44em;
+  }
+</style>

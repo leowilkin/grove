@@ -1,0 +1,368 @@
+:root {
+  --font: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  /* The construction grid: 29 modules wide, the width of GROVE. */
+  --gutter: clamp(16px, 4.5vw, 72px);
+  --m: max(10px, min(44px, calc((100vw - 2 * var(--gutter)) / 29), calc((100svh - 470px) / 7)));
+  --wrap: calc(var(--m) * 29);
+
+  --green: #0b4a31;
+  --green-deep: #083b27;
+  --white: #f3faf5;
+  --leaf: #6be38f;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  color-scheme: light dark;
+}
+
+/* Every sheet sets its own ground, lines and state colours; components only read these. */
+.sheet-green {
+  --ground: var(--green);
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 255 255 / 0.3);
+  --fg: var(--white);
+  --fg-2: #b2d5bf;
+  --s-active: var(--leaf);
+  --s-idle: #7eabff;
+  --s-dormant: #ffa24c;
+  --s-folder: #cdd8d1;
+  --cell-line: rgb(11 74 49 / 0.55);
+  --slash: var(--green);
+  --dim: #1d5a40;
+  --focus: var(--white);
+  color-scheme: dark;
+}
+
+.sheet-paper {
+  --ground: #f4f7f3;
+  --line: #e0e8e2;
+  --line-strong: #b7c5bb;
+  --fg: #0c1912;
+  --fg-2: #46574d;
+  --s-active: #2a9a54;
+  --s-idle: #2e6cdb;
+  --s-dormant: #dc7716;
+  --s-folder: #9ba69f;
+  --cell-line: rgb(244 247 243 / 0.35);
+  --slash: #f4f7f3;
+  --focus: #127a4a;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sheet-paper {
+    --ground: #0c1410;
+    --line: #18241d;
+    --line-strong: #33463a;
+    --fg: #e6efe9;
+    --fg-2: #9cb0a4;
+    --s-active: var(--leaf);
+    --s-idle: #7eabff;
+    --s-dormant: #ffa24c;
+    --s-folder: #8d9b93;
+    --cell-line: rgb(12 20 16 / 0.35);
+    --slash: #0c1410;
+    --focus: var(--leaf);
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--green);
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scrollbar-color: #2f6b52 var(--green-deep);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--white);
+  background: var(--green);
+  -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
+}
+
+::selection {
+  background: var(--leaf);
+  color: #062a1b;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus, var(--white));
+  outline-offset: 3px;
+}
+
+code,
+.mono {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  font-variant-ligatures: none;
+}
+
+.num {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Sheets */
+
+.sheet {
+  position: relative;
+  color: var(--fg);
+  background-color: var(--ground);
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: var(--m) var(--m);
+  background-position: calc(50% - var(--m) * 14) 0;
+}
+
+@media (max-width: 600px) {
+  .sheet-paper {
+    background-size: calc(var(--m) * 2) calc(var(--m) * 2);
+  }
+}
+
+.sheet + .sheet {
+  box-shadow: inset 0 1px 0 var(--line-strong);
+}
+
+.wrap {
+  width: var(--wrap);
+  margin-inline: auto;
+}
+
+.sheet-body {
+  padding-block: calc(var(--m) * 3) calc(var(--m) * 3);
+}
+
+h2 {
+  font-size: clamp(2rem, 1.2rem + 2.3vw, 3.4rem);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.lede {
+  font-size: clamp(1.1rem, 1rem + 0.35vw, 1.3rem);
+  line-height: 1.5;
+  color: var(--fg-2);
+  max-width: 36em;
+  text-wrap: pretty;
+}
+
+.lede code {
+  color: var(--fg);
+}
+
+/* Cell words */
+
+.cellword {
+  --cm: var(--m);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cm));
+  grid-template-rows: repeat(var(--rows), var(--cm));
+  width: max-content;
+}
+
+/* Construction lines keep running through the letters. */
+.cellword::after {
+  content: '';
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1 / -1 / -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--cell-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--cell-line) 1px, transparent 1px);
+  background-size: var(--cm) var(--cm);
+}
+
+.cell {
+  background-color: var(--fg);
+  transition:
+    box-shadow 0.3s var(--ease),
+    background-color 0.6s var(--ease) var(--d, 0ms),
+    outline-color 0.6s var(--ease) var(--d, 0ms);
+  outline: 1px dashed transparent;
+  outline-offset: -1px;
+}
+
+.cell.active { background-color: var(--s-active); }
+.cell.idle { background-color: var(--s-idle); }
+.cell.dormant { background-color: var(--s-dormant); }
+.cell.folder { background-color: var(--s-folder); }
+.cell.missing {
+  background-color: transparent;
+  outline-color: var(--fg-2);
+}
+
+/* The diagonal means one thing: Grove would clear this. */
+.cell.ready {
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1.25px),
+    var(--slash) calc(50% - 1.25px),
+    var(--slash) calc(50% + 1.25px),
+    transparent calc(50% + 1.25px)
+  );
+}
+
+.cell.missing.ready {
+  --slash: var(--fg-2);
+}
+
+.cellword.cleared .cell.ready {
+  background-color: transparent;
+  outline-color: color-mix(in oklab, var(--fg) 35%, transparent);
+  --slash: color-mix(in oklab, var(--fg) 35%, transparent);
+}
+
+.cellword[data-active] .cell:not(.on, .missing) {
+  box-shadow: inset 0 0 0 999px var(--dim);
+}
+
+.cellword[data-active].cleared .cell.ready:not(.on) {
+  box-shadow: none;
+}
+
+.cellword.mono .cell {
+  background-color: currentColor;
+}
+
+/* Controls */
+
+.btn {
+  --h: max(48px, calc(var(--m) * 1.5));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  height: var(--h);
+  padding-inline: 1.15em 1.3em;
+  border: 1px solid transparent;
+  border-radius: 0;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease),
+    color 0.25s var(--ease),
+    border-color 0.25s var(--ease);
+}
+
+.btn svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+
+.btn-primary {
+  background: var(--white);
+  color: #06301f;
+}
+
+.btn-primary:hover {
+  background: var(--leaf);
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--line-strong);
+}
+
+.btn-quiet:hover {
+  border-color: var(--fg);
+}
+
+.btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9em;
+  height: 1.9em;
+  padding-inline: 0.35em;
+  font-family: var(--font), -apple-system, system-ui, sans-serif;
+  font-size: 0.85em;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg);
+  border: 1px solid var(--line-strong);
+  background: var(--ground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+}

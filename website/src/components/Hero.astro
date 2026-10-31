@@ -1,0 +1,598 @@
+---
+import CellWord from './CellWord.astro';
+import { all, ready, items, sum, bytes } from '../lib/cells';
+import { downloadUrl, requirement } from '../site';
+
+const inside = sum(all.filter((i) => items[i].inside));
+const readyBytes = sum(ready);
+const outside = sum(ready.filter((i) => !items[i].inside));
+const trashed = ready.filter((i) => items[i].state !== 'missing').length;
+const forgotten = ready.length - trashed;
+---
+
+<section class="hero sheet sheet-green" aria-labelledby="hero-title">
+  <header class="top wrap">
+    <a href="/" class="top-mark" aria-label="Grove, home">
+      <CellWord word="GROVE" label="Grove" class="wordmark" />
+      <span class="text-mark" aria-hidden="true"><img src="/favicon.svg" alt="" width="28" height="28" />Grove</span>
+    </a>
+    <nav class="top-nav" aria-label="Sections">
+      <a href="#reads">How it reads git</a>
+      <a href="#agents">Agents</a>
+      <a href="#safety">Safety</a>
+    </nav>
+    <a class="btn btn-primary top-cta" href={downloadUrl}>Download</a>
+  </header>
+
+  <svg class="branch" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <line x1="61" y1="100" x2="100" y2="0" vector-effect="non-scaling-stroke"></line>
+  </svg>
+
+  <div class="wrap hero-word">
+    <CellWord
+      word="GROVE"
+      list={all}
+      interactive
+      label={`The word Grove, drawn from a demo folder of ${items.length} items. Each cell is about ${bytes(sum(all) / 89)}. Use the arrow keys to read each item.`}
+    />
+  </div>
+
+  <div class="wrap hero-low">
+    <div class="pitch">
+      <h1 id="hero-title"><span class="sr-only">Grove: </span>Know what’s finished in&nbsp;~/Code.</h1>
+      <p class="lede">
+        Grove reads every repository, worktree and stray folder, including the ones your agents left in <code
+          >.claude/worktrees</code
+        >, and shows what’s active, what’s gone stale and what’s safe to clear. Then it clears it, with undo.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href={downloadUrl}>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12"></path>
+          </svg>
+          Download for macOS
+        </a>
+        <span class="req">{requirement}</span>
+      </div>
+    </div>
+
+    <aside class="readout" data-readout data-view="folder" aria-label="Demo folder">
+      <div class="ro-view ro-folder">
+        <p class="ro-head"><span class="mono">~/Code</span><span>Demo folder, fictional</span></p>
+        <p class="ro-total num" data-total>{bytes(inside)}</p>
+        <p class="ro-sub" data-sub>
+          on disk across {items.length} items. Grove would clear {ready.length} of them, one a worktree outside ~/Code.
+        </p>
+        <ul class="ro-key" aria-label="Key">
+          <li><i class="sw active"></i>Active</li>
+          <li><i class="sw idle"></i>Idle</li>
+          <li><i class="sw dormant"></i>Dormant</li>
+          <li><i class="sw folder"></i>Not in git</li>
+          <li><i class="sw ready"></i>Ready to remove</li>
+        </ul>
+        <button class="btn btn-quiet ro-clear" type="button" data-clear>
+          <span data-clear-label>Clear {ready.length} finished items</span>
+          <kbd hidden data-undo-key>⌘Z</kbd>
+        </button>
+        <p class="ro-hint">Point at any cell to read what Grove knows about it.</p>
+      </div>
+
+      <div class="ro-view ro-item" aria-hidden="true">
+        <p class="ro-head"><span data-f="kind"></span><span data-f="when"></span></p>
+        <p class="ro-name" data-f="name"></p>
+        <p class="ro-path mono" data-f="path"></p>
+        <dl class="ro-facts">
+          <div><dt>Branch</dt><dd class="mono" data-f="branch"></dd></div>
+          <div><dt>Size</dt><dd class="num" data-f="size"></dd></div>
+        </dl>
+        <p class="ro-verdict"><i class="sw" data-f="swatch"></i><span data-f="verdict"></span></p>
+        <p class="ro-why" data-f="why"></p>
+      </div>
+    </aside>
+  </div>
+
+  <p class="sr-only" role="status" data-status></p>
+
+  <script
+    type="application/json"
+    id="demo-folder"
+    set:html={JSON.stringify({
+      items,
+      inside,
+      after: inside - (readyBytes - outside),
+      outside,
+      trashed,
+      forgotten,
+    })}
+  />
+</section>
+
+<script>
+  type Item = {
+    name: string;
+    kind: string;
+    path: string;
+    branch: string | null;
+    sizeLabel: string;
+    when: string;
+    state: string;
+    verdict: string;
+    why: string;
+    inside: boolean;
+  };
+
+  const data = JSON.parse(document.getElementById('demo-folder')!.textContent!);
+  const items: Item[] = data.items;
+  const word = document.querySelector<HTMLElement>('[data-cellword]')!;
+  const panel = document.querySelector<HTMLElement>('[data-readout]')!;
+  const status = document.querySelector<HTMLElement>('[data-status]')!;
+  const total = panel.querySelector<HTMLElement>('[data-total]')!;
+  const sub = panel.querySelector<HTMLElement>('[data-sub]')!;
+  const clear = panel.querySelector<HTMLButtonElement>('[data-clear]')!;
+  const clearLabel = clear.querySelector<HTMLElement>('[data-clear-label]')!;
+  const undoKey = clear.querySelector<HTMLElement>('[data-undo-key]')!;
+  const field = (f: string) => panel.querySelector<HTMLElement>(`[data-f="${f}"]`)!;
+  const cells = [...word.querySelectorAll<HTMLElement>('.cell')];
+  const order = [...new Set(cells.map((c) => Number(c.dataset.i)))];
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const gb = (b: number) => `${(b / 1e9).toFixed(2)}\u00a0GB`;
+  // The ~/Code share is the difference of the two totals as shown, so the readout always adds up.
+  const fromCode = `${((Math.round(data.inside / 1e7) - Math.round(data.after / 1e7)) / 100).toFixed(2)}\u00a0GB`;
+  const fromOutside = `${Math.round(data.outside / 1e6)}\u00a0MB`;
+  const kinds: Record<string, string> = { repository: 'Repository', worktree: 'Worktree', folder: 'Folder' };
+  const states: Record<string, string> = {
+    active: 'Active',
+    idle: 'Idle',
+    dormant: 'Dormant',
+    folder: 'Not in git',
+    missing: 'Folder missing',
+  };
+  const verdicts: Record<string, string> = {
+    ready: 'Ready to remove',
+    attention: 'Needs attention',
+    keep: 'Keep',
+    loose: 'Nothing backs it up',
+  };
+
+  let current: number | null = null;
+  let pinned = false;
+  let cleared = false;
+
+  // Cleared cells empty in reading order, so the word comes apart left to right.
+  cells.filter((c) => c.classList.contains('ready')).forEach((c, n) => c.style.setProperty('--d', `${n * 22}ms`));
+  undoKey.textContent = isMac ? '⌘Z' : 'Ctrl Z';
+
+  function show(i: number | null, announce = false) {
+    current = i;
+    cells.forEach((c) => c.classList.toggle('on', Number(c.dataset.i) === i));
+    if (i === null) {
+      word.removeAttribute('data-active');
+      panel.dataset.view = 'folder';
+      return;
+    }
+    const it = items[i];
+    const gone = cleared && it.verdict === 'ready';
+    word.dataset.active = '';
+    panel.dataset.view = 'item';
+    field('kind').textContent = it.kind === 'worktree' && !it.inside ? 'Worktree outside ~/Code' : kinds[it.kind];
+    field('when').textContent = it.state === 'missing' ? '' : it.when;
+    field('name').textContent = it.name;
+    field('path').textContent = it.path;
+    field('branch').textContent = it.branch ?? 'Not a repository';
+    field('size').textContent = it.state === 'missing' ? 'Folder deleted' : it.sizeLabel;
+    field('swatch').className = `sw ${it.state}${it.verdict === 'ready' ? ' ready' : ''}`;
+    field('verdict').textContent = gone
+      ? it.state === 'missing'
+        ? 'Forgotten'
+        : 'In the Trash'
+      : `${states[it.state]} · ${it.state === 'missing' ? 'Ready to forget' : verdicts[it.verdict]}`;
+    field('why').textContent = gone ? `${isMac ? '⌘Z' : 'Undo'} puts it back.` : it.why;
+    if (announce) status.textContent = `${it.name}. ${field('verdict').textContent}. ${field('why').textContent}`;
+  }
+
+  word.addEventListener('pointerover', (e) => {
+    const cell = (e.target as HTMLElement).closest<HTMLElement>('.cell');
+    if (cell && !pinned) show(Number(cell.dataset.i));
+  });
+  word.addEventListener('pointerleave', () => !pinned && show(null));
+  word.addEventListener('click', (e) => {
+    const cell = (e.target as HTMLElement).closest<HTMLElement>('.cell');
+    if (!cell) return;
+    const i = Number(cell.dataset.i);
+    pinned = !(pinned && current === i);
+    show(pinned ? i : null);
+  });
+  word.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (step) {
+      e.preventDefault();
+      const at = current === null ? (step > 0 ? -1 : order.length) : order.indexOf(current);
+      pinned = true;
+      show(order[(at + step + order.length) % order.length], true);
+    } else if (e.key === 'Escape') {
+      pinned = false;
+      show(null);
+    }
+  });
+  word.addEventListener('blur', () => {
+    pinned = false;
+    show(null);
+  });
+
+  function tween(from: number, to: number) {
+    if (reduce.matches) return void (total.textContent = gb(to));
+    const start = performance.now();
+    const frame = (now: number) => {
+      const t = Math.min(1, (now - start) / 900);
+      const eased = 1 - Math.pow(2, -10 * t);
+      total.textContent = gb(from + (to - from) * (t === 1 ? 1 : eased));
+      if (t < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  function setCleared(next: boolean) {
+    cleared = next;
+    word.classList.toggle('cleared', cleared);
+    panel.classList.toggle('is-cleared', cleared);
+    undoKey.hidden = !cleared;
+    tween(cleared ? data.inside : data.after, cleared ? data.after : data.inside);
+    clearLabel.textContent = cleared ? 'Undo' : `Clear ${data.trashed + data.forgotten} finished items`;
+    sub.textContent = cleared
+      ? `down from ${gb(data.inside)}: ${fromCode} back from ~/Code, plus ${fromOutside} from a worktree in ~/.codex. ${data.trashed} items in the Trash, ${data.forgotten} missing worktree forgotten.`
+      : `on disk across ${items.length} items. Grove would clear ${data.trashed + data.forgotten} of them, one a worktree outside ~/Code.`;
+    status.textContent = cleared
+      ? `Cleared. ${fromCode} back from ~/Code, plus ${fromOutside} from ~/.codex. Press ${isMac ? 'Command Z' : 'Control Z'} to undo.`
+      : 'Undone. Everything is back.';
+    if (current !== null) show(current);
+  }
+
+  clear.addEventListener('click', () => setCleared(!cleared));
+  document.addEventListener('keydown', (e) => {
+    if (cleared && e.key.toLowerCase() === 'z' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+      e.preventDefault();
+      setCleared(false);
+    }
+  });
+</script>
+
+<style>
+  .hero {
+    overflow: clip;
+    min-height: min(100svh, 1000px);
+    padding-bottom: calc(var(--m) * 2);
+  }
+
+  .top::after {
+    content: '';
+    position: absolute;
+    left: calc(50% - 50vw);
+    width: 100vw;
+    bottom: 0;
+    height: 1px;
+    background: var(--line-strong);
+  }
+
+  .top {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--m) * 0.75);
+    height: max(56px, calc(var(--m) * 2));
+  }
+
+  .top-mark {
+    color: var(--white);
+    margin-right: auto;
+    text-decoration: none;
+  }
+
+  .top-mark :global(.wordmark) {
+    --cm: 4px;
+  }
+
+  .top-mark :global(.wordmark::after) {
+    display: none;
+  }
+
+  .text-mark {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+  }
+
+  .top-nav {
+    display: flex;
+    gap: calc(var(--m) * 0.75);
+  }
+
+  .top-nav a {
+    color: var(--fg-2);
+    font-size: 0.97rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .top-nav a:hover {
+    color: var(--fg);
+  }
+
+  .top-cta {
+    --h: max(40px, var(--m));
+    font-size: 0.97rem;
+  }
+
+  .branch {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .branch line {
+    stroke: rgb(255 255 255 / 0.32);
+    stroke-width: 1.5;
+  }
+
+  .hero-word {
+    position: relative;
+    margin-top: var(--m);
+  }
+
+  .hero-word :global([data-cellword]) {
+    cursor: crosshair;
+    outline-offset: 6px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-word :global(.cell) {
+      animation: assemble 0.9s var(--ease) both;
+      animation-delay: calc(var(--k) * 9ms + 150ms);
+    }
+  }
+
+  @keyframes assemble {
+    from {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+  }
+
+  .hero-low {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) calc(var(--m) * 10);
+    gap: var(--m);
+    margin-top: var(--m);
+    align-items: start;
+  }
+
+  h1 {
+    font-size: clamp(2.3rem, 1rem + 3.6vw, 4.4rem);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+    max-width: 11em;
+  }
+
+  .pitch .lede {
+    margin-top: calc(var(--m) * 0.5);
+    max-width: 33em;
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1.25rem;
+    margin-top: calc(var(--m) * 0.75);
+  }
+
+  .req {
+    color: var(--fg-2);
+    font-size: 0.95rem;
+  }
+
+  .readout {
+    display: grid;
+    border: 1px solid var(--line-strong);
+    background: var(--ground);
+    padding: calc(var(--m) * 0.5) calc(var(--m) * 0.5) calc(var(--m) * 0.45);
+  }
+
+  .ro-view {
+    grid-area: 1 / 1;
+    transition: opacity 0.2s var(--ease);
+  }
+
+  .readout[data-view='folder'] .ro-item,
+  .readout[data-view='item'] .ro-folder {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .ro-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.88rem;
+    color: var(--fg-2);
+  }
+
+  .ro-total {
+    margin-top: 0.4rem;
+    font-family: var(--mono);
+    font-size: clamp(2rem, 1.5rem + 1.3vw, 2.8rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .ro-sub {
+    margin-top: 0.4rem;
+    color: var(--fg-2);
+    font-size: 0.95rem;
+    line-height: 1.45;
+    min-height: 4.35em;
+  }
+
+  .ro-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    margin-top: 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .ro-key li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .sw {
+    display: inline-block;
+    width: 0.95rem;
+    height: 0.95rem;
+    flex: none;
+    background-color: var(--fg);
+  }
+
+  .sw.active { background-color: var(--s-active); }
+  .sw.idle { background-color: var(--s-idle); }
+  .sw.dormant { background-color: var(--s-dormant); }
+  .sw.folder { background-color: var(--s-folder); }
+  .sw.missing { background-color: transparent; outline: 1px dashed var(--fg-2); outline-offset: -1px; }
+
+  .sw.ready {
+    background-image: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      var(--slash) calc(50% - 1px),
+      var(--slash) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+  }
+
+  .ro-key .sw.ready {
+    --slash: var(--fg);
+    background-color: transparent;
+    outline: 1px solid var(--line-strong);
+    outline-offset: -1px;
+  }
+
+  .ro-clear {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: calc(var(--m) * 0.5);
+  }
+
+  .is-cleared .ro-clear {
+    background: var(--white);
+    color: #06301f;
+    border-color: var(--white);
+  }
+
+  .is-cleared .ro-clear kbd {
+    color: #06301f;
+    background: transparent;
+    border-color: rgb(6 48 31 / 0.35);
+  }
+
+  .ro-hint {
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    color: var(--fg-2);
+  }
+
+  .ro-name {
+    margin-top: 0.35rem;
+    font-size: clamp(1.6rem, 1.3rem + 0.8vw, 2.1rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .ro-path {
+    margin-top: 0.45rem;
+    color: var(--fg-2);
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+  }
+
+  .ro-facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    margin-top: 0.85rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line-strong);
+    font-size: 0.95rem;
+  }
+
+  .ro-facts dt {
+    color: var(--fg-2);
+    font-size: 0.85rem;
+  }
+
+  .ro-facts dd {
+    margin: 0.1rem 0 0;
+    overflow-wrap: anywhere;
+  }
+
+  .ro-verdict {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+    font-weight: 650;
+  }
+
+  .ro-why {
+    margin-top: 0.35rem;
+    color: var(--fg-2);
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 860px) {
+    .top-nav {
+      display: none;
+    }
+
+    .top-mark :global(.wordmark) {
+      display: none;
+    }
+
+    .text-mark {
+      display: flex;
+    }
+
+    .hero {
+      min-height: 0;
+    }
+
+    .hero-low {
+      grid-template-columns: minmax(0, 1fr);
+      gap: calc(var(--m) * 2.5);
+      margin-top: calc(var(--m) * 2);
+    }
+
+    .readout {
+      padding: 18px 16px 16px;
+    }
+
+    .branch {
+      display: none;
+    }
+  }
+</style>

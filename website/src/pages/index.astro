@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import Reads from '../components/Reads.astro';
+import Agents from '../components/Agents.astro';
+import Safety from '../components/Safety.astro';
+import Close from '../components/Close.astro';
+---
+
+<Base
+  title="Grove: know what’s finished in ~/Code"
+  description="A Mac app that reads every repository, worktree and stray folder in your code folder, including the ones your agents left behind, and clears what’s finished with undo."
+>
+  <main>
+    <Hero />
+    <Reads />
+    <Agents />
+    <Safety />
+    <Close />
+  </main>
+</Base>

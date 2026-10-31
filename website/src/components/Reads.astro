@@ -1,0 +1,292 @@
+---
+import { getImage } from 'astro:assets';
+import light from '../assets/screens/overview-light.png';
+import dark from '../assets/screens/overview-dark.png';
+import { items, sum, bytes } from '../lib/cells';
+
+const widths = [800, 1280, 1920, 2560];
+const srcset = async (src: typeof light, format: 'avif' | 'webp') =>
+  (await Promise.all(widths.map((width) => getImage({ src, width, format }))))
+    .map((img, k) => `${img.src} ${widths[k]}w`)
+    .join(', ');
+const sizes = '(min-width: 1360px) 1276px, calc(100vw - 32px)';
+const fallback = await getImage({ src: light, width: 1280, format: 'png' });
+
+const named = (pick: (i: (typeof items)[number]) => boolean) => items.filter(pick);
+const finished = named((i) => i.kind === 'worktree' && i.verdict === 'ready' && i.state !== 'missing');
+const dormant = named((i) => i.kind === 'repository' && i.verdict === 'ready');
+const missing = named((i) => i.state === 'missing');
+const attention = named((i) => i.verdict === 'attention');
+const loose = named((i) => i.kind === 'folder');
+const size = (list: typeof items) => bytes(list.reduce((s, i) => s + i.size, 0));
+
+const rows = [
+  {
+    clears: true,
+    says: 'Remove finished worktrees',
+    checks: 'Nothing uncommitted, and the branch was merged, its remote branch was deleted, or it has sat idle with everything pushed.',
+    names: finished.map((i) => i.name),
+    total: size(finished),
+  },
+  {
+    clears: true,
+    says: 'Clear out dormant repositories',
+    checks: 'Untouched for over 90 days, every commit already on a remote, no stashes, nothing uncommitted in it or its worktrees.',
+    names: dormant.map((i) => i.name),
+    total: size(dormant),
+  },
+  {
+    clears: true,
+    says: 'Prune stale branches',
+    checks: 'Merged, or the remote branch is gone. Never the default branch, the current one, or one checked out in any worktree.',
+    names: ['chore/bump-deps', 'docs/api-examples', 'fix/typo-in-readme'],
+    total: '3 branches',
+  },
+  {
+    clears: true,
+    says: 'Forget missing worktrees',
+    checks: 'Git still tracks a worktree whose folder was deleted, which blocks its branch from being checked out anywhere else.',
+    names: missing.map((i) => i.name),
+    total: '1 record',
+  },
+  {
+    clears: false,
+    says: 'Save work in progress',
+    checks: 'Uncommitted changes, or commits that aren’t on any remote yet. Grove points at these; it never offers to clear them.',
+    names: attention.map((i) => i.name),
+    total: `${attention.length} items`,
+  },
+  {
+    clears: false,
+    says: 'Sort out loose folders',
+    checks: 'Not a git repository, so nothing backs it up. Grove shows how much space they take and leaves the call to you.',
+    names: loose.map((i) => i.name),
+    total: size(loose),
+  },
+];
+---
+
+<section id="reads" class="sheet sheet-paper" aria-labelledby="reads-title">
+  <div class="wrap sheet-body">
+    <div class="head">
+      <h2 id="reads-title">Grove reads git, not just your disk.</h2>
+      <p class="lede">
+        A disk tool sees folders. Grove sees branches, remotes and worktrees, so it can tell a worktree whose pull
+        request merged last week from one holding an afternoon of unpushed work.
+      </p>
+    </div>
+
+    <figure class="plate">
+      <picture>
+        <source type="image/avif" media="(prefers-color-scheme: dark)" srcset={await srcset(dark, 'avif')} sizes={sizes} />
+        <source type="image/webp" media="(prefers-color-scheme: dark)" srcset={await srcset(dark, 'webp')} sizes={sizes} />
+        <source type="image/avif" srcset={await srcset(light, 'avif')} sizes={sizes} />
+        <source type="image/webp" srcset={await srcset(light, 'webp')} sizes={sizes} />
+        <img
+          src={fallback.src}
+          width="1280"
+          height="800"
+          loading="lazy"
+          decoding="async"
+          alt="Grove’s Overview window for the demo folder: ~/Code, 26 items, 11.75 GB on disk, a storage bar split into active, idle, dormant and not in git, counts of 15 repositories, 7 worktrees, 5 needing attention and 9 ready to remove, and recommendations starting with Remove finished worktrees, 2.08 GB."
+        />
+      </picture>
+      <figcaption>Grove’s overview of the demo folder from the top of this page, captured from the app.</figcaption>
+    </figure>
+
+    <table class="spec">
+      <caption class="sr-only">What each recommendation checks before Grove makes it</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="mark-col"><span class="sr-only">Clears space</span></th>
+          <th scope="col">Grove says</th>
+          <th scope="col">Because it checked</th>
+          <th scope="col">In the demo folder</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((r) => (
+            <tr>
+              <td class="mark-col">
+                <i class:list={['mark', { clears: r.clears }]} />
+                <span class="sr-only">{r.clears ? 'Offers to clear' : 'Points it out'}</span>
+              </td>
+              <th scope="row">{r.says}</th>
+              <td class="checks">{r.checks}</td>
+              <td>
+                <div class="demo">
+                  <span class="names mono">
+                    {r.names.map((n, k) => (
+                      <>
+                        <span class="nm">{n}</span>
+                        {k < r.names.length - 1 && ', '}
+                      </>
+                    ))}
+                  </span>
+                  <span class="total num">{r.total}</span>
+                </div>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<style>
+  .head {
+    display: grid;
+    grid-template-columns: minmax(0, 13fr) minmax(0, 15fr);
+    gap: var(--m);
+    align-items: end;
+  }
+
+  .head .lede {
+    justify-self: end;
+    max-width: 30em;
+  }
+
+  .plate {
+    margin-top: calc(var(--m) * 1.5);
+  }
+
+  .plate img {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 22px 34px rgb(12 25 18 / 0.18)) drop-shadow(0 2px 4px rgb(12 25 18 / 0.12));
+  }
+
+  figcaption {
+    margin-top: calc(var(--m) * 0.5);
+    font-size: 0.9rem;
+    color: var(--fg-2);
+  }
+
+  .spec {
+    width: 100%;
+    margin-top: calc(var(--m) * 2);
+    border-collapse: collapse;
+    font-size: 1rem;
+  }
+
+  .spec thead th {
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fg-2);
+    padding: 0 1rem calc(var(--m) * 0.3) 0;
+    border-bottom: 1px solid var(--fg);
+  }
+
+  .spec td,
+  .spec tbody th {
+    text-align: left;
+    vertical-align: top;
+    padding: calc(var(--m) * 0.4) 1.25rem calc(var(--m) * 0.4) 0;
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .spec tbody th {
+    font-size: 1.12rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    width: 24%;
+  }
+
+  .mark-col {
+    width: calc(var(--m) * 1.25);
+  }
+
+  .mark {
+    display: block;
+    width: max(18px, calc(var(--m) * 0.6));
+    height: max(18px, calc(var(--m) * 0.6));
+    margin-top: 0.2rem;
+    outline: 1px solid var(--fg);
+    outline-offset: -1px;
+  }
+
+  .mark.clears {
+    background: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      var(--fg) calc(50% - 1px),
+      var(--fg) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+  }
+
+  .checks {
+    color: var(--fg-2);
+    width: 40%;
+    text-wrap: pretty;
+  }
+
+  .demo {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .names {
+    line-height: 1.6;
+  }
+
+  .nm {
+    white-space: nowrap;
+  }
+
+  .total {
+    flex: none;
+    font-weight: 600;
+  }
+
+  @media (max-width: 860px) {
+    .head {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    .head .lede {
+      justify-self: start;
+    }
+
+    .spec thead {
+      display: none;
+    }
+
+    .spec tbody tr {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      column-gap: 0.75rem;
+      padding-block: 1.1rem;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .spec td,
+    .spec tbody th {
+      display: block;
+      width: auto;
+      padding: 0;
+      border: 0;
+    }
+
+    .spec .mark-col {
+      grid-row: 1 / span 3;
+      width: auto;
+    }
+
+    .checks {
+      margin-top: 0.3rem;
+    }
+
+    .demo {
+      margin-top: 0.5rem;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+  }
+</style>

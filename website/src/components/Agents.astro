@@ -1,0 +1,249 @@
+---
+import { items } from '../lib/cells';
+
+const order = [
+  'tidepool',
+  'refactor-sync-engine',
+  'onboarding-copy',
+  'fix-flaky-upload-test',
+  'dark-mode-tokens',
+  'review-pr-212',
+  'old-spike',
+  'marigold-web',
+  'marigold-image-pipeline',
+];
+const rows = order.map((name) => items.find((i) => i.name === name)!);
+const worktrees = rows.filter((r) => r.kind === 'worktree').length;
+---
+
+<section id="agents" class="sheet sheet-green" aria-labelledby="agents-title">
+  <div class="wrap sheet-body">
+    <div class="head">
+      <h2 id="agents-title">Agents make worktrees. Grove finds every one.</h2>
+      <p class="lede">
+        Claude Code tucks them into <code>.claude/worktrees</code>, Codex keeps them under <code>~/.codex</code>, and
+        plenty end up outside <code>~/Code</code> entirely. Grove follows git to each of them, and a repository stays
+        active as long as its busiest worktree is.
+      </p>
+    </div>
+
+    <table class="tree">
+      <caption class="sr-only">Two repositories from the demo folder and their {worktrees} worktrees, as Grove reads them</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="mark-col"><span class="sr-only">State</span></th>
+          <th scope="col">Where</th>
+          <th scope="col">Branch</th>
+          <th scope="col" class="r">Size</th>
+          <th scope="col">Grove’s read</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((r) => (
+            <tr class:list={[r.kind, { 'is-ready': r.verdict === 'ready', 'inside-repo': r.kind === 'worktree' && r.inside }]}>
+              <td class="mark-col">
+                <i class:list={['cell-mark', r.state, { ready: r.verdict === 'ready' }]} />
+              </td>
+              <th scope="row" class="where mono">
+                {r.kind === 'worktree' && r.inside ? (
+                  <>
+                    <span class="dim">.claude/worktrees/</span>
+                    <wbr />
+                    <span class="wt">{r.name}</span>
+                  </>
+                ) : (
+                  r.path
+                )}
+              </th>
+              <td class="branch mono">{r.branch}</td>
+              <td class="r num size">{r.state === 'missing' ? '—' : r.sizeLabel}</td>
+              <td class="read">
+                <strong>
+                  {r.state === 'missing'
+                    ? 'Forget'
+                    : r.verdict === 'ready'
+                      ? 'Remove'
+                      : r.verdict === 'attention'
+                        ? 'Unsaved work'
+                        : 'Keep'}
+                </strong>{' '}
+                {r.why}
+                {!r.inside && <span class="where-note"> Lives outside ~/Code.</span>}
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<style>
+  .head h2 {
+    max-width: 15em;
+  }
+
+  .head .lede {
+    margin-top: calc(var(--m) * 0.75);
+    margin-left: calc(var(--m) * 14);
+    max-width: 31em;
+  }
+
+  .tree {
+    width: 100%;
+    margin-top: calc(var(--m) * 2);
+    border-collapse: collapse;
+    font-size: 0.98rem;
+  }
+
+  .tree thead th {
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fg-2);
+    padding: 0 1rem calc(var(--m) * 0.3) 0;
+    border-bottom: 1px solid var(--fg);
+  }
+
+  .tree td,
+  .tree tbody th {
+    text-align: left;
+    vertical-align: top;
+    font-weight: 400;
+    padding: calc(var(--m) * 0.3) 1.1rem calc(var(--m) * 0.3) 0;
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .tree .r {
+    text-align: right;
+  }
+
+  .mark-col {
+    width: calc(var(--m) * 1.25);
+  }
+
+  .cell-mark {
+    display: block;
+    width: max(18px, calc(var(--m) * 0.6));
+    height: max(18px, calc(var(--m) * 0.6));
+    margin-top: 0.1rem;
+  }
+
+  .cell-mark.active { background-color: var(--s-active); }
+  .cell-mark.idle { background-color: var(--s-idle); }
+  .cell-mark.dormant { background-color: var(--s-dormant); }
+  .cell-mark.missing { outline: 1px dashed var(--fg-2); outline-offset: -1px; --slash: var(--fg-2); }
+
+  .cell-mark.ready {
+    background-image: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1.25px),
+      var(--slash) calc(50% - 1.25px),
+      var(--slash) calc(50% + 1.25px),
+      transparent calc(50% + 1.25px)
+    );
+  }
+
+  .where {
+    overflow-wrap: break-word;
+    font-size: 0.86rem;
+  }
+
+  .repository .where {
+    font-weight: 700;
+  }
+
+  .worktree.inside-repo .where {
+    padding-left: calc(var(--m) * 0.5);
+  }
+
+  @media (min-width: 961px) {
+    .where,
+    .branch {
+      white-space: nowrap;
+    }
+  }
+
+  .dim {
+    color: var(--fg-2);
+  }
+
+  .wt {
+    white-space: nowrap;
+  }
+
+  .branch {
+    color: var(--fg-2);
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+  }
+
+  .size {
+    white-space: nowrap;
+  }
+
+  .read {
+    color: var(--fg-2);
+    width: 34%;
+    text-wrap: pretty;
+  }
+
+  .read strong {
+    color: var(--fg);
+    font-weight: 650;
+  }
+
+  .where-note {
+    color: var(--fg);
+  }
+
+  @media (max-width: 960px) {
+    .head .lede {
+      margin-left: 0;
+    }
+
+    .tree thead {
+      display: none;
+    }
+
+    .tree tbody tr {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      column-gap: 0.75rem;
+      padding-block: 0.95rem;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .tree td,
+    .tree tbody th {
+      display: block;
+      padding: 0;
+      border: 0;
+      width: auto;
+    }
+
+    .tree .mark-col {
+      grid-row: 1 / span 3;
+    }
+
+    .where {
+      grid-column: 2;
+    }
+
+    .size {
+      grid-column: 3;
+      grid-row: 1;
+    }
+
+    .branch {
+      grid-column: 2 / 4;
+      margin-top: 0.2rem;
+    }
+
+    .read {
+      grid-column: 2 / 4;
+      margin-top: 0.4rem;
+    }
+  }
+</style>

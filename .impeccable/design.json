@@ -1,0 +1,660 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T14:02:56+00:00",
+  "title": "Design System: Grove website",
+  "extensions": {
+    "colorMeta": {
+      "grove-green": {
+        "role": "primary",
+        "displayName": "Grove Green",
+        "canonical": "oklch(36.4% 0.075 161.1)",
+        "tonalRamp": [
+          "#001006",
+          "#002d1a",
+          "#0e4c33",
+          "#326b50",
+          "#528b6f",
+          "#73ad8f",
+          "#99d4b5",
+          "#c2ffde"
+        ]
+      },
+      "grove-green-deep": {
+        "role": "neutral",
+        "displayName": "Grove Green Deep",
+        "canonical": "oklch(31.4% 0.063 161.7)",
+        "tonalRamp": [
+          "#001006",
+          "#002c1b",
+          "#1b4a35",
+          "#3a6952",
+          "#5a8972",
+          "#7bab92",
+          "#a0d1b7",
+          "#cafce1"
+        ]
+      },
+      "leaf": {
+        "role": "primary",
+        "displayName": "Leaf",
+        "canonical": "oklch(82.6% 0.161 151.2)",
+        "tonalRamp": [
+          "#001102",
+          "#002d11",
+          "#074d24",
+          "#187039",
+          "#23954e",
+          "#3dba68",
+          "#69e18d",
+          "#c9fed5"
+        ]
+      },
+      "sheet-white": {
+        "role": "primary",
+        "displayName": "Sheet White",
+        "canonical": "oklch(97.8% 0.010 155.1)",
+        "tonalRamp": [
+          "#080c09",
+          "#202522",
+          "#3c413d",
+          "#595f5b",
+          "#797f7b",
+          "#9aa09c",
+          "#bfc6c1",
+          "#eaf0ec"
+        ]
+      },
+      "green-line": {
+        "role": "neutral",
+        "displayName": "Green Hairline",
+        "canonical": "rgb(255 255 255 / 0.1)",
+        "note": "White hairline at fixed alpha over the green ground.",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "green-line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Green Hairline",
+        "canonical": "rgb(255 255 255 / 0.3)",
+        "note": "White hairline at fixed alpha over the green ground.",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#7d7d7d",
+          "#9e9e9e",
+          "#c4c4c4",
+          "#eeeeee"
+        ]
+      },
+      "green-fg-2": {
+        "role": "neutral",
+        "displayName": "Pale Sage",
+        "canonical": "oklch(84.1% 0.048 157.6)",
+        "tonalRamp": [
+          "#001005",
+          "#0c2b1b",
+          "#294836",
+          "#466653",
+          "#668672",
+          "#86a893",
+          "#abceb8",
+          "#d5f9e2"
+        ]
+      },
+      "green-dim": {
+        "role": "neutral",
+        "displayName": "Shade Green",
+        "canonical": "oklch(42.1% 0.077 161.8)",
+        "tonalRamp": [
+          "#001006",
+          "#012c1b",
+          "#094c33",
+          "#306b50",
+          "#518c6f",
+          "#72ae90",
+          "#97d4b5",
+          "#c6fee0"
+        ]
+      },
+      "button-ink": {
+        "role": "neutral",
+        "displayName": "Button Ink",
+        "canonical": "oklch(27.6% 0.055 161.5)",
+        "tonalRamp": [
+          "#001006",
+          "#022c1b",
+          "#224936",
+          "#406854",
+          "#5f8873",
+          "#80aa94",
+          "#a5d0b9",
+          "#cffbe3"
+        ]
+      },
+      "idle-on-green": {
+        "role": "secondary",
+        "displayName": "Signal Blue",
+        "canonical": "oklch(74.4% 0.132 262.2)",
+        "tonalRamp": [
+          "#000037",
+          "#001962",
+          "#153a84",
+          "#325aa7",
+          "#517bcb",
+          "#719df0",
+          "#a6c5fd",
+          "#e7effe"
+        ]
+      },
+      "dormant-on-green": {
+        "role": "secondary",
+        "displayName": "Late Orange",
+        "canonical": "oklch(79.1% 0.149 60.4)",
+        "tonalRamp": [
+          "#1a0500",
+          "#3a1b00",
+          "#603200",
+          "#894c09",
+          "#b5670e",
+          "#e08529",
+          "#fdb170",
+          "#ffeada"
+        ]
+      },
+      "folder-on-green": {
+        "role": "secondary",
+        "displayName": "Lichen Grey",
+        "canonical": "oklch(87.2% 0.015 158.2)",
+        "tonalRamp": [
+          "#060d09",
+          "#1e2621",
+          "#39423d",
+          "#57605a",
+          "#76807a",
+          "#97a19b",
+          "#bcc7c0",
+          "#e7f2eb"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(97.3% 0.006 137.8)",
+        "tonalRamp": [
+          "#0a0c09",
+          "#232522",
+          "#3e403d",
+          "#5c5e5b",
+          "#7b7e7b",
+          "#9d9f9c",
+          "#c2c5c1",
+          "#ecefeb"
+        ]
+      },
+      "paper-line": {
+        "role": "neutral",
+        "displayName": "Paper Hairline",
+        "canonical": "oklch(92.3% 0.012 153.7)",
+        "tonalRamp": [
+          "#080d09",
+          "#202621",
+          "#3b423d",
+          "#59605b",
+          "#787f7a",
+          "#99a19b",
+          "#bfc6c1",
+          "#e9f1eb"
+        ]
+      },
+      "paper-line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Paper Hairline",
+        "canonical": "oklch(81.0% 0.021 154.8)",
+        "tonalRamp": [
+          "#050e07",
+          "#1c2720",
+          "#37433b",
+          "#556158",
+          "#748178",
+          "#95a299",
+          "#bac8be",
+          "#e4f3e8"
+        ]
+      },
+      "paper-ink": {
+        "role": "neutral",
+        "displayName": "Paper Ink",
+        "canonical": "oklch(19.9% 0.023 159.8)",
+        "tonalRamp": [
+          "#030e08",
+          "#1a2820",
+          "#35443b",
+          "#536259",
+          "#728278",
+          "#93a399",
+          "#b8c9bf",
+          "#e2f4e9"
+        ]
+      },
+      "paper-ink-2": {
+        "role": "neutral",
+        "displayName": "Paper Ink Secondary",
+        "canonical": "oklch(43.9% 0.027 159.3)",
+        "tonalRamp": [
+          "#020f07",
+          "#19281f",
+          "#34443b",
+          "#516258",
+          "#708278",
+          "#91a499",
+          "#b6cabe",
+          "#e0f4e8"
+        ]
+      },
+      "active-on-paper": {
+        "role": "secondary",
+        "displayName": "Deep Leaf",
+        "canonical": "oklch(60.8% 0.144 151.5)",
+        "tonalRamp": [
+          "#001102",
+          "#002d12",
+          "#064d24",
+          "#186f3a",
+          "#22954f",
+          "#4db76f",
+          "#76de94",
+          "#c9fed5"
+        ]
+      },
+      "idle-on-paper": {
+        "role": "secondary",
+        "displayName": "Deep Signal Blue",
+        "canonical": "oklch(55.4% 0.182 261.0)",
+        "tonalRamp": [
+          "#000037",
+          "#001d5c",
+          "#003594",
+          "#1755c2",
+          "#3977e7",
+          "#689df9",
+          "#a4c5fd",
+          "#e6effe"
+        ]
+      },
+      "dormant-on-paper": {
+        "role": "secondary",
+        "displayName": "Burnt Orange",
+        "canonical": "oklch(67.0% 0.158 56.2)",
+        "tonalRamp": [
+          "#1b0400",
+          "#3c1900",
+          "#633000",
+          "#8d4905",
+          "#bb6308",
+          "#e68026",
+          "#fdb079",
+          "#ffeadc"
+        ]
+      },
+      "folder-on-paper": {
+        "role": "secondary",
+        "displayName": "Stone Grey",
+        "canonical": "oklch(71.4% 0.016 158.1)",
+        "tonalRamp": [
+          "#060d09",
+          "#1e2621",
+          "#39423d",
+          "#56605a",
+          "#76807a",
+          "#97a29b",
+          "#bcc7c0",
+          "#e6f2ea"
+        ]
+      },
+      "paper-focus": {
+        "role": "neutral",
+        "displayName": "Paper Focus",
+        "canonical": "oklch(51.2% 0.117 156.6)",
+        "tonalRamp": [
+          "#001004",
+          "#002d17",
+          "#064d2c",
+          "#186f44",
+          "#349260",
+          "#59b480",
+          "#80dba5",
+          "#c5ffda"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(18.1% 0.015 162.8)",
+        "tonalRamp": [
+          "#060d09",
+          "#1e2622",
+          "#39423d",
+          "#57605b",
+          "#76807b",
+          "#97a19c",
+          "#bcc7c1",
+          "#e6f2ec"
+        ]
+      },
+      "ink-line": {
+        "role": "neutral",
+        "displayName": "Ink Hairline",
+        "canonical": "oklch(24.6% 0.021 158.8)",
+        "tonalRamp": [
+          "#040e08",
+          "#1b2720",
+          "#36433c",
+          "#546159",
+          "#738179",
+          "#94a39a",
+          "#b9c9bf",
+          "#e3f3e9"
+        ]
+      },
+      "ink-line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Ink Hairline",
+        "canonical": "oklch(37.4% 0.032 156.8)",
+        "tonalRamp": [
+          "#010f06",
+          "#17291e",
+          "#324539",
+          "#4f6356",
+          "#6e8376",
+          "#8fa597",
+          "#b4cbbc",
+          "#def5e6"
+        ]
+      },
+      "ink-fg": {
+        "role": "neutral",
+        "displayName": "Ink Text",
+        "canonical": "oklch(94.4% 0.012 157.0)",
+        "tonalRamp": [
+          "#070d09",
+          "#1f2622",
+          "#3b423d",
+          "#58605b",
+          "#78807a",
+          "#98a19b",
+          "#bec7c1",
+          "#e8f1eb"
+        ]
+      },
+      "ink-fg-2": {
+        "role": "neutral",
+        "displayName": "Ink Text Secondary",
+        "canonical": "oklch(73.8% 0.028 159.3)",
+        "tonalRamp": [
+          "#020f07",
+          "#18281f",
+          "#33443a",
+          "#506358",
+          "#708377",
+          "#90a498",
+          "#b6cabe",
+          "#dff5e8"
+        ]
+      },
+      "folder-on-ink": {
+        "role": "secondary",
+        "displayName": "Slate Grey",
+        "canonical": "oklch(67.6% 0.020 160.9)",
+        "tonalRamp": [
+          "#040e08",
+          "#1c2721",
+          "#37433c",
+          "#54615a",
+          "#748179",
+          "#94a29a",
+          "#bac8c0",
+          "#e4f3ea"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headline only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "One per sheet."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "Paragraph under a headline, secondary text colour."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Row heads, definition terms, small h3; 650 is the emphasis weight."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text and table cells."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Sentence-case column heads and fact labels."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Paths, branches, sizes; ligatures off."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Live disk totals in the readout."
+      }
+    },
+    "shadows": [
+      {
+        "name": "app-plate",
+        "value": "drop-shadow(0 22px 34px rgb(12 25 18 / 0.18)) drop-shadow(0 2px 4px rgb(12 25 18 / 0.12))",
+        "purpose": "filter on screenshots of the Grove app only; the one shadow in the world."
+      },
+      {
+        "name": "sheet-seam",
+        "value": "inset 0 1px 0 var(--line-strong)",
+        "purpose": "Structural hairline where two sheets meet; a rule, not elevation."
+      },
+      {
+        "name": "dim-overlay",
+        "value": "inset 0 0 0 999px var(--dim)",
+        "purpose": "Tint over every cell except the one being read; dimming, not elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The house ease for every transition."
+      },
+      {
+        "name": "button",
+        "value": "0.25s",
+        "purpose": "Button background, colour and border changes."
+      },
+      {
+        "name": "readout-crossfade",
+        "value": "0.2s",
+        "purpose": "Readout switching between folder and item views."
+      },
+      {
+        "name": "cell-assemble",
+        "value": "0.9s, delay calc(var(--k) * 9ms + 150ms), from opacity 0 scale 0.3",
+        "purpose": "Hero cells build in on load, only when motion is allowed."
+      },
+      {
+        "name": "cell-clear",
+        "value": "0.6s, 22ms stagger per clearable cell",
+        "purpose": "Clearable cells empty left to right; undo refills them."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms, no delay",
+        "purpose": "All transitions and animations collapse under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "paper-grid-coarse",
+        "value": "600px"
+      },
+      {
+        "name": "hero-stack",
+        "value": "860px"
+      },
+      {
+        "name": "table-collapse",
+        "value": "960px"
+      },
+      {
+        "name": "rules-single",
+        "value": "560px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Download only. Sheet white slab on green, fills to leaf on hover.",
+      "html": "<div class=\"ds-g\"><a class=\"ds-btn-primary\" href=\"#\"><svg viewBox=\"0 0 20 20\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M10 3v10M5.5 8.5 10 13l4.5-4.5M4 16.5h12\"/></svg>Download for macOS</a></div>",
+      "css": ".ds-g { background: #0b4a31; padding: 28px; } .ds-btn-primary { display: inline-flex; align-items: center; gap: 0.7em; height: 48px; padding: 0 1.3em 0 1.15em; background: #f3faf5; color: #06301f; border: 1px solid transparent; border-radius: 0; font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; font-size: 1.05rem; font-weight: 650; letter-spacing: -0.005em; text-decoration: none; transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: #6be38f; } .ds-btn-primary:focus-visible { outline: 2px solid #f3faf5; outline-offset: 3px; }"
+    },
+    {
+      "name": "Quiet Button / Clear control",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Hairline-bordered control; becomes a white Undo slab with its key cap once the clear has run.",
+      "html": "<div class=\"ds-g\"><button class=\"ds-btn-quiet\">Clear 9 finished items</button><button class=\"ds-btn-quiet ds-undo\">Undo <kbd class=\"ds-kc\">⌘Z</kbd></button></div>",
+      "css": ".ds-g { background: #0b4a31; padding: 28px; display: grid; gap: 12px; width: 360px; } .ds-btn-quiet { display: flex; justify-content: space-between; align-items: center; height: 48px; padding: 0 1.3em 0 1.15em; background: transparent; color: #f3faf5; border: 1px solid rgb(255 255 255 / 0.3); border-radius: 0; font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; font-size: 1.05rem; font-weight: 650; cursor: pointer; transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-quiet:hover { border-color: #f3faf5; } .ds-btn-quiet:focus-visible { outline: 2px solid #f3faf5; outline-offset: 3px; } .ds-undo { background: #f3faf5; color: #06301f; border-color: #f3faf5; } .ds-kc { display: inline-grid; place-items: center; min-width: 1.9em; height: 1.9em; padding: 0 0.35em; font: 600 0.85em 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; color: #06301f; border: 1px solid rgb(6 48 31 / 0.35); }"
+    },
+    {
+      "name": "Top bar",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Cell wordmark, three pale sage links, compact Download, full-bleed hairline below.",
+      "html": "<header class=\"ds-top\"><span class=\"ds-mark\">GROVE</span><nav class=\"ds-nav\"><a href=\"#\">How it reads git</a><a href=\"#\">Agents</a><a href=\"#\">Safety</a></nav><a class=\"ds-cta\" href=\"#\">Download</a></header>",
+      "css": ".ds-top { display: flex; align-items: center; gap: 24px; height: 56px; padding: 0 24px; background: #0b4a31; border-bottom: 1px solid rgb(255 255 255 / 0.3); font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; } .ds-mark { margin-right: auto; color: #f3faf5; font-weight: 700; letter-spacing: 0.08em; } .ds-nav { display: flex; gap: 24px; } .ds-nav a { color: #b2d5bf; font-size: 0.97rem; font-weight: 500; text-decoration: none; } .ds-nav a:hover { color: #f3faf5; } .ds-nav a:focus-visible, .ds-cta:focus-visible { outline: 2px solid #f3faf5; outline-offset: 3px; } .ds-cta { display: inline-flex; align-items: center; height: 40px; padding: 0 1.3em 0 1.15em; background: #f3faf5; color: #06301f; font-size: 0.97rem; font-weight: 650; text-decoration: none; } .ds-cta:hover { background: #6be38f; }"
+    },
+    {
+      "name": "Cell word",
+      "kind": "custom",
+      "refersTo": "cell",
+      "description": "Square module cells on the visible grid; state fill, slash for clearable, dashed outline for missing. Sample shows one 5x7 glyph.",
+      "html": "<div class=\"ds-g\"><div class=\"ds-cw\"><span class=\"ds-cell a\" style=\"grid-area:1/1\"></span><span class=\"ds-cell a\" style=\"grid-area:1/2\"></span><span class=\"ds-cell a\" style=\"grid-area:1/3\"></span><span class=\"ds-cell i\" style=\"grid-area:1/4\"></span><span class=\"ds-cell r d\" style=\"grid-area:1/5\"></span><span class=\"ds-cell a\" style=\"grid-area:2/1\"></span><span class=\"ds-cell a\" style=\"grid-area:3/1\"></span><span class=\"ds-cell a\" style=\"grid-area:4/1\"></span><span class=\"ds-cell d\" style=\"grid-area:4/3\"></span><span class=\"ds-cell r a\" style=\"grid-area:4/4\"></span><span class=\"ds-cell m\" style=\"grid-area:4/5\"></span><span class=\"ds-cell a\" style=\"grid-area:5/1\"></span><span class=\"ds-cell f\" style=\"grid-area:5/5\"></span><span class=\"ds-cell a\" style=\"grid-area:6/1\"></span><span class=\"ds-cell f\" style=\"grid-area:6/5\"></span><span class=\"ds-cell a\" style=\"grid-area:7/1\"></span><span class=\"ds-cell a\" style=\"grid-area:7/2\"></span><span class=\"ds-cell i\" style=\"grid-area:7/3\"></span><span class=\"ds-cell f\" style=\"grid-area:7/4\"></span><span class=\"ds-cell f\" style=\"grid-area:7/5\"></span></div></div>",
+      "css": ".ds-g { background: #0b4a31; padding: 28px; background-image: linear-gradient(to right, rgb(255 255 255 / 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / 0.1) 1px, transparent 1px); background-size: 28px 28px; } .ds-cw { display: grid; grid-template-columns: repeat(5, 28px); grid-template-rows: repeat(7, 28px); } .ds-cell { background: #f3faf5; } .ds-cell.a { background: #6be38f; } .ds-cell.i { background: #7eabff; } .ds-cell.d { background: #ffa24c; } .ds-cell.f { background: #cdd8d1; } .ds-cell.m { background: transparent; outline: 1px dashed #b2d5bf; outline-offset: -1px; } .ds-cell.r { background-image: linear-gradient(to bottom right, transparent calc(50% - 1.25px), #0b4a31 calc(50% - 1.25px), #0b4a31 calc(50% + 1.25px), transparent calc(50% + 1.25px)); } .ds-cell:hover { box-shadow: inset 0 0 0 999px #1d5a40; }"
+    },
+    {
+      "name": "Readout panel",
+      "kind": "card",
+      "refersTo": "readout-panel",
+      "description": "The hero instrument: path, live mono total, summary, state key.",
+      "html": "<div class=\"ds-g\"><aside class=\"ds-ro\"><p class=\"ds-ro-head\"><span class=\"ds-mono\">~/Code</span><span>Demo folder, fictional</span></p><p class=\"ds-ro-total\">11.75 GB</p><p class=\"ds-ro-sub\">on disk across 26 items. Grove would clear 9 of them.</p><ul class=\"ds-key\"><li><i class=\"ds-sw a\"></i>Active</li><li><i class=\"ds-sw i\"></i>Idle</li><li><i class=\"ds-sw d\"></i>Dormant</li><li><i class=\"ds-sw f\"></i>Not in git</li><li><i class=\"ds-sw r\"></i>Ready to remove</li></ul></aside></div>",
+      "css": ".ds-g { background: #0b4a31; padding: 28px; } .ds-ro { width: 340px; padding: 20px; border: 1px solid rgb(255 255 255 / 0.3); background: #0b4a31; color: #f3faf5; font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; } .ds-ro p { margin: 0; } .ds-ro-head { display: flex; justify-content: space-between; font-size: 0.88rem; color: #b2d5bf; } .ds-mono { font-family: 'JetBrains Mono Variable', ui-monospace, monospace; font-size: 0.86em; } .ds-ro-total { margin-top: 0.4rem !important; font: 600 2.6rem/1 'JetBrains Mono Variable', ui-monospace, monospace; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; } .ds-ro-sub { margin-top: 0.4rem !important; color: #b2d5bf; font-size: 0.95rem; line-height: 1.45; } .ds-key { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; } .ds-key li { display: flex; align-items: center; gap: 0.45rem; } .ds-sw { width: 0.95rem; height: 0.95rem; } .ds-sw.a { background: #6be38f; } .ds-sw.i { background: #7eabff; } .ds-sw.d { background: #ffa24c; } .ds-sw.f { background: #cdd8d1; } .ds-sw.r { outline: 1px solid rgb(255 255 255 / 0.3); outline-offset: -1px; background-image: linear-gradient(to bottom right, transparent calc(50% - 1px), #f3faf5 calc(50% - 1px), #f3faf5 calc(50% + 1px), transparent calc(50% + 1px)); }"
+    },
+    {
+      "name": "Reference table (paper)",
+      "kind": "custom",
+      "refersTo": "state-mark",
+      "description": "Hairline-ruled table on a paper sheet; outlined mark for shown, slashed mark for cleared.",
+      "html": "<div class=\"ds-p\"><table class=\"ds-t\"><thead><tr><th></th><th>Grove says</th><th>In the demo folder</th></tr></thead><tbody><tr><td><i class=\"ds-m c\"></i></td><th>Remove finished worktrees</th><td class=\"ds-mono\">fix-flaky-upload-test</td></tr><tr><td><i class=\"ds-m\"></i></td><th>Sort out loose folders</th><td class=\"ds-mono\">screenshots-2025</td></tr></tbody></table></div>",
+      "css": ".ds-p { background: #f4f7f3; color: #0c1912; padding: 28px; font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; } .ds-t { width: 100%; border-collapse: collapse; } .ds-t thead th { text-align: left; font-size: 0.85rem; font-weight: 600; color: #46574d; padding: 0 1rem 8px 0; border-bottom: 1px solid #0c1912; } .ds-t td, .ds-t tbody th { text-align: left; vertical-align: top; padding: 12px 1.25rem 12px 0; border-bottom: 1px solid #b7c5bb; } .ds-t tbody th { font-size: 1.12rem; font-weight: 650; letter-spacing: -0.01em; } .ds-mono { font-family: 'JetBrains Mono Variable', ui-monospace, monospace; font-size: 0.86em; } .ds-m { display: block; width: 18px; height: 18px; outline: 1px solid #0c1912; outline-offset: -1px; } .ds-m.c { background: linear-gradient(to bottom right, transparent calc(50% - 1px), #0c1912 calc(50% - 1px), #0c1912 calc(50% + 1px), transparent calc(50% + 1px)); } .ds-t tbody tr:hover th { color: #127a4a; }"
+    },
+    {
+      "name": "Key caps",
+      "kind": "chip",
+      "refersTo": "key-cap",
+      "description": "Square grotesk key caps; combinations butt together on shared hairlines.",
+      "html": "<div class=\"ds-p\"><span class=\"ds-combo\"><kbd>⌥</kbd><kbd>⌘</kbd><kbd>R</kbd></span> Fetch all remotes</div>",
+      "css": ".ds-p { background: #f4f7f3; color: #46574d; padding: 28px; font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; font-size: 0.95rem; display: flex; align-items: center; gap: 0.8rem; } .ds-combo { display: inline-flex; } .ds-combo kbd { display: inline-grid; place-items: center; min-width: 1.9em; height: 1.9em; padding: 0 0.35em; font: 600 0.85em 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; line-height: 1; color: #0c1912; background: #f4f7f3; border: 1px solid #b7c5bb; } .ds-combo kbd + kbd { margin-left: -1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Folder as Specimen Grid",
+    "overview": "The site is a gridded type specimen printed on Grove green. Every section is a sheet with its construction grid left visible: hairlines at one module apart, a module sized so that exactly 29 of them span the page. The monumental words are not set in a font at all; they are built from square cells on that grid, and in the hero each cell is a real item from a demo folder, coloured by its state and sized by its share of disk. Everything else is a calm, neutral grotesk doing editorial work in the margins of that grid.\n\nThe world alternates two kinds of sheet. Green sheets carry the specimen moments (the hero, the agent worktree table, the close) and stay green in both colour schemes. Paper sheets carry the long reading passages (how Grove reads git, the safety rules) and turn from pale paper to green-black ink when the visitor's system is in dark mode. Components never pick their own colours; they read whatever the sheet beneath them supplies.\n\nDensity is that of a reference sheet rather than a brochure: tables with hairline rules, definition lists, real paths and real sizes in monospace, numbers that tick when something is cleared. Ornament is limited to what carries meaning: the grid, the four state colours, and one diagonal stroke.",
+    "keyCharacteristics": [
+      "A single fluid module (10–44px) sets the grid, the cell size, the wrap width (29 modules) and most spacing.",
+      "Visible construction hairlines on every sheet, running through the cell letters as well.",
+      "Four state colours plus a dashed outline for \"missing\", identical in meaning on every sheet.",
+      "Square corners and hairline borders throughout; flat surfaces; one shadow, under the app screenshot.",
+      "Grotesk for all text, monospace only for paths, branches, sizes and totals."
+    ],
+    "rules": [
+      {
+        "name": "The State Colour Rule",
+        "body": "Active, idle, dormant and not-in-git colours mean exactly that, wherever they appear: cells, swatches, table marks, the key. Never use a state colour to decorate, categorise or highlight anything else (leaf's role as button hover and selection is the one standing exception).",
+        "section": "colors"
+      },
+      {
+        "name": "The Sheet Owns the Palette Rule",
+        "body": "Every section is a `sheet-green` or `sheet-paper`; the sheet sets ground, hairlines, text, state colours, slash and focus as custom properties, and components only read them. A new component that hard-codes a colour is wrong on one of the two sheets.",
+        "section": "colors"
+      },
+      {
+        "name": "The Green Stays Green Rule",
+        "body": "Green sheets keep their ground in dark mode; only paper sheets flip, to ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Instrument Mono Rule",
+        "body": "JetBrains Mono is for things a terminal would print: paths, branches, sizes, totals. Headlines, prose, labels and key caps stay in the grotesk.",
+        "section": "typography"
+      },
+      {
+        "name": "The Cell Letter Rule",
+        "body": "Cell letters are for monumental words only: the hero GROVE, the closing TIDY, and the 4px-module wordmark. Glyphs are 5 by 7 cells with one empty column between letters, square cells only (V and Y step down rather than slant). When a cell word is built from data, every lit cell belongs to a real item, allocated by size; never fill one with invented or decorative cells.",
+        "section": "typography"
+      },
+      {
+        "name": "The Twenty-Nine Rule",
+        "body": "Measure in modules. A width, gap or padding that cannot be stated as a module multiple (or a small fixed text-relative gap inside a line) is out of system.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Sheet Rule",
+        "body": "No shadows on panels, buttons, cells or tables. If something must come forward, dim what is behind it.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Diagonal Rule",
+        "body": "A slash means clearable and nothing else. Do not use diagonals for decoration, dividers, glyph construction or emphasis.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do derive every size from the module: cells are one module, the wrap is 29, sheet padding is three.",
+      "Do put every section on a sheet and let the sheet supply colour; check new work on green, paper and ink.",
+      "Do keep the construction grid visible on every sheet, including through cell letters.",
+      "Do show actions as before → after with real numbers from the demo folder, and keep undo visible after any clear.",
+      "Do dim the rest (shade green overlay) to bring one item forward.",
+      "Do honour reduced motion: transitions and the cell assembly collapse to instant."
+    ],
+    "donts": [
+      "Don't round corners on anything the site draws; only the app icon and app screenshots are rounded.",
+      "Don't add shadows beyond the app plate's drop shadow.",
+      "Don't use a diagonal for anything except \"Grove would clear this\" and the hero's single branch line.",
+      "Don't use a state colour for anything but folder state.",
+      "Don't set prose, headings or labels in JetBrains Mono, or paths and sizes in the grotesk.",
+      "Don't set running headlines in cell letters or fill data cell words with decorative cells.",
+      "Don't apply this system to the Grove macOS app."
+    ]
+  }
+}

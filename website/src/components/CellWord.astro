@@ -1,0 +1,39 @@
+---
+// A word drawn on the construction grid. With `list`, every lit cell belongs to an item of the demo folder,
+// coloured by its state and slashed when Grove would clear it; without, the cells are plain ink.
+import { allocate, layout, items, ROWS } from '../lib/cells';
+
+interface Props {
+  word: string;
+  list?: number[];
+  class?: string;
+  label: string;
+  interactive?: boolean;
+}
+
+const { word, list, class: className, label, interactive = false } = Astro.props;
+const { cols, cells } = list ? allocate(word, list) : { ...layout(word), cells: layout(word).cells.map((c) => ({ ...c, item: null })) };
+---
+
+<div
+  class:list={['cellword', className, { mono: !list }]}
+  style={`--cols:${cols};--rows:${ROWS}`}
+  role={interactive ? 'group' : 'img'}
+  aria-label={label}
+  tabindex={interactive ? 0 : undefined}
+  data-cellword={interactive ? '' : undefined}
+>
+  {
+    cells.map((c, k) => {
+      const it = c.item === null ? null : items[c.item];
+      return (
+        <span
+          class:list={['cell', it?.state, { ready: it?.verdict === 'ready' }]}
+          style={`grid-area:${c.row + 1}/${c.col + 1};--k:${k}`}
+          data-i={c.item ?? undefined}
+          aria-hidden="true"
+        />
+      );
+    })
+  }
+</div>
