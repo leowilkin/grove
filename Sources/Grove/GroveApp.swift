@@ -4,19 +4,30 @@ import SwiftUI
 struct GroveApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var store = GroveStore()
+    @State private var updater = Updater()
 
     var body: some Scene {
         WindowGroup("Grove", id: "main") {
             ContentView()
                 .environment(store)
+                .environment(updater)
                 .frame(minWidth: 900, minHeight: 560)
         }
         .defaultSize(width: 1320, height: 820)
-        .commands { GroveCommands(store: store) }
+        .commands { GroveCommands(store: store, updater: updater) }
+
+        Window("Software Update", id: "update") {
+            UpdateView()
+                .environment(updater)
+        }
+        .windowResizability(.contentSize)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
 
         Settings {
             SettingsView()
                 .environment(store)
+                .environment(updater)
         }
     }
 }
@@ -31,8 +42,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 struct GroveCommands: Commands {
     var store: GroveStore
+    var updater: Updater
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Button("Check for Updates…") {
+                updater.checkNow()
+                openWindow(id: "update")
+            }
+        }
+
         CommandGroup(replacing: .newItem) {}
 
         CommandMenu("Repository") {

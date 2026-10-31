@@ -37,9 +37,10 @@ Grove understands git, not just disk usage. It knows a worktree whose branch was
 - Overview: disk use split by activity (active, idle, dormant, not in git), counts, and recommendations: finished worktrees, dormant fully-pushed repositories, stale local branches, worktrees git tracks whose folders are gone, uncommitted or unpushed work, folders nothing backs up.
 - Library with smart filters (repositories, worktrees, other folders, needs attention, recently active, dormant, ready to remove) and sorting by name, branch, status, last activity, size.
 - Inspector: branch and tracking, working tree state, commits not on any remote, last commit, a repository's worktrees and branches.
-- Safety: Move to Trash uses the real Trash (Finder's Put Back works) and ⌘Z undoes it; removing a worktree sets aside git's record so undo restores it exactly (records cleared after a week); removing a repository lists every linked worktree it takes; uncommitted, unpushed, stashed or remote-less work is called out before confirming; branch cleanup never touches the default, current, or any checked-out branch, and deleted branches restore with ⌘Z; Pin keeps a repository out of every suggestion; Fetch All is the only network action and only runs when clicked.
+- Safety: Move to Trash uses the real Trash (Finder's Put Back works) and ⌘Z undoes it; removing a worktree sets aside git's record so undo restores it exactly (records cleared after a week); removing a repository lists every linked worktree it takes; uncommitted, unpushed, stashed or remote-less work is called out before confirming; branch cleanup never touches the default, current, or any checked-out branch, and deleted branches restore with ⌘Z; Pin keeps a repository out of every suggestion; Fetch All is the only network action on repositories and only runs when clicked.
+- Updates: once a day the copy in Applications checks GitHub for a newer release and offers to install it (password prompt, then Grove reopens). The check can be turned off in Settings; Grove → Check for Updates… runs it on demand.
 - Requires macOS 26 or later.
-- Distribution: a downloadable .dmg. No release exists yet; the download URL is a placeholder until one ships.
+- Distribution: Grove.pkg on GitHub releases, unsigned until Developer ID signing is set up.
 - Undecided: license, price (assume nothing), version number for launch, deploy target for the site.
 
 ## Brand Commitments
@@ -58,6 +59,6 @@ Grove understands git, not just disk usage. It knows a worktree whose branch was
 ## Product Principles
 
 - Never lose work: every destructive action is reversible or called out first.
-- Read-only until asked: scanning never changes anything, and the network is touched only on request.
+- Read-only until asked: scanning never changes anything, and the network is touched only on request, apart from a daily update check that can be turned off.
 - Understand git, not just folders: recommendations come from branch and remote state, not from size alone.
 - Clear read first, action second: the overview tells you what's true before suggesting what to do.
