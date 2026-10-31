@@ -6,6 +6,14 @@ A native macOS app for tending a messy `~/Code` folder: every repository, every 
 
 **[Download Grove.pkg](https://github.com/leowilkin/grove/releases/latest/download/Grove.pkg)** and open it. It installs Grove into Applications. Needs an Apple silicon Mac on macOS 26 or later.
 
+Releases aren't signed with a Developer ID yet, so the first time you open the installer macOS says it can't verify it. Click **Done**, then open **System Settings → Privacy & Security**, scroll down to the message about Grove.pkg, and click **Open Anyway**.
+
+Or install from the terminal, which skips that (`curl` doesn't mark the download as quarantined):
+
+```bash
+curl -LO https://github.com/leowilkin/grove/releases/latest/download/Grove.pkg && sudo installer -pkg Grove.pkg -target /
+```
+
 ## What it shows
 
 - **Overview**: disk use split by activity (active, idle, dormant, not in git), counts, and recommendations:
@@ -55,9 +63,9 @@ Set `GROVE_DEBUG=1` in the environment to log failing git calls to stderr.
 
 Local builds are signed ad hoc, which only satisfies Gatekeeper on the Mac that built them.
 
-Pushing a tag like `v1.2.0` runs the Release workflow, which builds the installer on a macOS 26 runner, signs it with a Developer ID, notarizes it, and attaches `Grove.pkg` to a GitHub release for that tag. The download link above always points at the newest release. Running the workflow by hand from the Actions tab does the same but attaches the installer to the run instead of publishing it.
+Pushing a tag like `v1.2.0` runs the Release workflow, which builds the installer on a macOS 26 runner and attaches `Grove.pkg` to a GitHub release for that tag. The download link above always points at the newest release. Running the workflow by hand from the Actions tab does the same but attaches the installer to the run instead of publishing it.
 
-The workflow signs with The Hack Foundation's Apple Developer team. To set up its secrets:
+Once the signing secrets below are set, the workflow also signs the app and installer with The Hack Foundation's Developer ID and notarizes them; without them it publishes unsigned. To set them up:
 
 1. Get a **Developer ID Application** and a **Developer ID Installer** certificate from that team into your keychain. An Apple Development certificate won't do.
 2. In Keychain Access, select both, export them together as one `.p12`, then:
