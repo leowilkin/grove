@@ -192,7 +192,7 @@ final class GroveStore {
     var rootPath: String {
         didSet {
             defaults.set(rootPath, forKey: "rootPath")
-            items = Cache.load(root: rootPath)
+            items = Cache.load(root: rootPath, from: support)
             selection = []
             refresh()
         }
@@ -205,8 +205,10 @@ final class GroveStore {
     var pinned: Set<String> { didSet { defaults.set(Array(pinned).sorted(), forKey: "pinned") } }
 
     @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored let support: SupportFolder
 
-    init(rootPath root: String? = nil) {
+    init(rootPath root: String? = nil, support: SupportFolder = .standard) {
+        self.support = support
         let d = UserDefaults.standard
         let home = FileManager.default.homeDirectoryForCurrentUser
         rootPath = root ?? d.string(forKey: "rootPath") ?? home.appending(path: "Code").path
@@ -216,7 +218,7 @@ final class GroveStore {
         terminalID = d.string(forKey: "terminalID") ?? Apps.terminals.first?.bundleID
         showExternalWorktrees = d.object(forKey: "showExternalWorktrees") as? Bool ?? true
         pinned = Set(d.stringArray(forKey: "pinned") ?? [])
-        items = Cache.load(root: rootPath)
+        items = Cache.load(root: rootPath, from: support)
         lastScanned = items.isEmpty ? nil : Date()
     }
 
@@ -625,7 +627,7 @@ final class GroveStore {
         selection = selection.filter { results[$0] != nil }
         lastScanned = Date()
         phase = .idle
-        Cache.save(items, root: root)
+        Cache.save(items, root: root, to: support)
     }
 
     private func computeSizes() async {
@@ -658,7 +660,7 @@ final class GroveStore {
         flush()
         if case .sizing = phase { phase = .idle }
         guard !Task.isCancelled else { return }
-        Cache.save(items, root: rootPath)
+        Cache.save(items, root: rootPath, to: support)
     }
 
     private func forEachConcurrently<T: Sendable, R: Sendable>(
@@ -750,11 +752,11 @@ final class GroveStore {
     func performTrash(_ plan: TrashPlan) async {
         trashPlan = nil
         do {
-            let record = try await Actions.remove(folders: plan.folders, admins: plan.admins, repair: plan.repair)
+            let record = try await Actions.remove(folders: plan.folders, admins: plan.admins, repair: plan.repair, support: support)
             let removed = Set(plan.entries.map(\.item.path))
             items.removeAll { removed.contains($0.path) }
             selection.subtract(removed)
-            Cache.save(items, root: rootPath)
+            Cache.save(items, root: rootPath, to: support)
             let n = plan.entries.count
             let message = plan.onlyForgetsMissing
                 ? "Forgot \(count(n, "missing worktree"))"

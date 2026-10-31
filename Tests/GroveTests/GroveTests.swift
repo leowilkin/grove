@@ -18,10 +18,8 @@ final class GroveTests {
             .appending(path: "scripts/make-fixtures.sh").path
         let result = await Shell.run("/bin/bash", [script, base], timeout: 120)
         try #require(result.ok, "fixture script failed: \(result.stderr)")
-        // Set after the fixture exists: a store from an earlier test may still be writing its cache.
-        AppSupport.directory = URL(fileURLWithPath: base).appending(path: "support", directoryHint: .isDirectory)
         root = Scanner.normalize(base + "/code")
-        store = GroveStore(rootPath: root)
+        store = GroveStore(rootPath: root, support: SupportFolder(url: URL(fileURLWithPath: base + "/support")))
         await store.scan()
     }
 

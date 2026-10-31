@@ -188,9 +188,9 @@ enum Git {
         case fetched, failed, skipped
     }
 
-    /// Settings that make fetch run a program: credential helpers, proxy and askpass commands,
-    /// and the upload-pack or remote helper a remote names.
-    private static let fetchCommandKeys = #"^(credential\..*helper|core\.(gitproxy|askpass)|remote\..*\.(uploadpack|receivepack|vcs))$"#
+    /// Settings that make fetch run a program: credential helpers, proxy, askpass and
+    /// alternate-refs commands, and the upload-pack or remote helper a remote names.
+    private static let fetchCommandKeys = #"^(credential\..*helper|core\.(gitproxy|askpass|alternaterefscommand)|remote\..*\.(uploadpack|receivepack|vcs))$"#
 
     /// Only well-known transports, and no automatic gc or submodule fetches riding along.
     private static let fetchHardening = [

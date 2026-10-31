@@ -237,10 +237,13 @@ enum Scanner {
             }
         }
 
-        // Branches and worktrees only for a plain repository whose data lives in its own `.git`.
-        // A `commondir` file could otherwise borrow another repository's branches and worktrees.
-        let ownGitDir = normalize(path + "/.git")
-        if full, info.gitDir.map(normalize) == ownGitDir, info.commonDir.map(normalize) == ownGitDir {
+        // Branches and worktrees only for a plain repository whose data lives in its own `.git`:
+        // a real folder (not a symlink) that git agrees is both its git dir and common dir.
+        // Otherwise a symlink or `commondir` file could borrow another repository's.
+        let ownGitDir = normalize(path) + "/.git"
+        let gitFolderType = (try? FileManager.default.attributesOfItem(atPath: ownGitDir))?[.type] as? FileAttributeType
+        if full, gitFolderType == .typeDirectory,
+           info.gitDir.map(normalize) == ownGitDir, info.commonDir.map(normalize) == ownGitDir {
             await scanBranches(path: path, into: &info)
             await scanWorktrees(path: path, into: &info)
         }

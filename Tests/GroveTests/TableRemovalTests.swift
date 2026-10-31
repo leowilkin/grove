@@ -14,9 +14,8 @@ struct TableRemovalTests {
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "scripts/make-fixtures.sh").path
         try #require(await Shell.run("/bin/bash", [script, base], timeout: 120).ok)
-        AppSupport.directory = URL(fileURLWithPath: base).appending(path: "support", directoryHint: .isDirectory)
 
-        let store = GroveStore(rootPath: Scanner.normalize(base + "/code"))
+        let store = GroveStore(rootPath: Scanner.normalize(base + "/code"), support: SupportFolder(url: URL(fileURLWithPath: base + "/support")))
         await store.scan()
         let undoManager = UndoManager()
         undoManager.groupsByEvent = false
