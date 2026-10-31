@@ -8,7 +8,7 @@ npm run dev      # http://localhost:4321
 npm run build    # static site in dist/
 ```
 
-Before launch, set `downloadUrl` (and optionally `repoUrl`) in `src/site.ts`.
+The download buttons point at the newest GitHub release's `Grove.pkg`; `downloadUrl` and `repoUrl` live in `src/site.ts`.
 
 ## Deploying
 
