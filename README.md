@@ -100,7 +100,7 @@ Once the signing secrets below are set, the workflow also signs the app and inst
 swift test
 ```
 
-The tests build throwaway repositories with `scripts/make-fixtures.sh` (merged, remote-deleted, missing, dirty, dormant, grouped and external worktrees), scan them, and run trash → undo and branch delete → undo against real git. One test hosts the table in a window and trashes the selected row, guarding against a crash where table cells lost their environment.
+The tests build throwaway repositories with `scripts/make-fixtures.sh` (merged, remote-deleted, freshly created, missing, dirty, dormant, grouped and external worktrees), scan them, and run trash → undo and branch delete → undo against real git. One test hosts the table in a window and trashes the selected row, guarding against a crash where table cells lost their environment.
 
 To try the cleanup actions by hand without touching your real folder:
 

@@ -225,9 +225,11 @@ enum Scanner {
         }
 
         if info.headSHA != nil {
-            if let defaultRef = info.defaultRef, !info.isOnDefaultBranch {
+            // A branch cut from the default branch is already an ancestor of it before it has
+            // any work of its own, so it only counts as merged once it has carried commits.
+            if let defaultRef = info.defaultRef, let branch = info.branch, !info.isOnDefaultBranch {
                 let ancestor = await Git.run(path, ["merge-base", "--is-ancestor", "HEAD", defaultRef])
-                info.isMerged = ancestor.ok
+                if ancestor.ok { info.isMerged = await hasOwnCommits(path, branch: branch) }
             }
             if info.remoteURL != nil {
                 let count = await Git.run(path, ["rev-list", "--count", "HEAD", "--not", "--remotes"])
@@ -269,6 +271,18 @@ enum Scanner {
             ["clean", "smudge", "process"].map { (key: "filter.\(name).\($0)", value: "") }
                 + [(key: "filter.\(name).required", value: "false")]
         }
+    }
+
+    /// Whether commits were made on `branch` since it was created or last reset, going by its
+    /// reflog. Fast-forwarding to catch up with another branch doesn't count, and neither does
+    /// a reflog that has expired or was never kept: when unsure, the branch isn't finished.
+    private static func hasOwnCommits(_ path: String, branch: String) async -> Bool {
+        let reflog = await Git.run(path, ["log", "--walk-reflogs", "--format=%gs", "refs/heads/" + branch, "--"])
+        for entry in reflog.lines {
+            if ["commit", "cherry-pick:", "revert:", "am:"].contains(where: entry.hasPrefix) { return true }
+            if entry.hasPrefix("branch:") || entry.hasPrefix("reset:") { return false }
+        }
+        return false
     }
 
     private static func entryPath(_ line: Substring, fields: Int) -> String? {
