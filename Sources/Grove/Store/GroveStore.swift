@@ -475,6 +475,11 @@ final class GroveStore {
         }
     }
 
+    /// Cancels any scan, measuring or fetch in progress.
+    func stop() {
+        scanTask?.cancel()
+    }
+
     func fetchAll() {
         guard !isBusy else { return }
         scanTask?.cancel()
@@ -482,22 +487,34 @@ final class GroveStore {
             let repos = items.filter { $0.kind == .repository && $0.hasRemote }.map(\.path)
             var done = 0
             var failures = 0
+            var skipped: [String] = []
             phase = .fetching(done: 0, total: repos.count)
-            await forEachConcurrently(repos, limit: 6, work: { await Git.fetch($0).ok }) { ok in
+            await forEachConcurrently(repos, limit: 6, work: { ($0, await Git.fetch($0)) }) { path, outcome in
                 done += 1
-                if !ok { failures += 1 }
+                switch outcome {
+                case .fetched: break
+                case .failed: failures += 1
+                case .skipped: skipped.append((path as NSString).lastPathComponent)
+                }
                 self.phase = .fetching(done: done, total: repos.count)
             }
             phase = .idle
             await scan()
-            toast = Toast(
-                message: failures == 0
-                    ? "Fetched \(count(repos.count, "repository"))"
-                    : "Fetched \(repos.count - failures) of \(repos.count) · \(failures) couldn't be reached",
-                canUndo: false
-            )
+            toast = Toast(message: fetchSummary(total: repos.count, failures: failures, skipped: skipped.sorted()), canUndo: false)
             if !Task.isCancelled { await computeSizes() }
         }
+    }
+
+    private func fetchSummary(total: Int, failures: Int, skipped: [String]) -> String {
+        if failures == 0, skipped.isEmpty { return "Fetched \(count(total, "repository"))" }
+        var parts = ["Fetched \(total - failures - skipped.count) of \(total)"]
+        if failures > 0 { parts.append("\(failures) couldn't be reached") }
+        if skipped.count == 1 {
+            parts.append("skipped \(skipped[0]), which sets its own fetch commands")
+        } else if skipped.count > 1 {
+            parts.append("skipped \(skipped.count) that set their own fetch commands")
+        }
+        return parts.joined(separator: " · ")
     }
 
     func scan() async {
@@ -640,6 +657,7 @@ final class GroveStore {
         }
         flush()
         if case .sizing = phase { phase = .idle }
+        guard !Task.isCancelled else { return }
         Cache.save(items, root: rootPath)
     }
 
@@ -695,8 +713,10 @@ final class GroveStore {
         let repositories = Set(items.filter { $0.kind == .repository }.map(\.path))
         let admins = entries.compactMap { entry -> String? in
             guard entry.item.kind == .worktree, let parent = entry.item.parentPath,
-                  repositories.contains(parent), !included.contains(parent) else { return nil }
-            return entry.item.adminDir
+                  repositories.contains(parent), !included.contains(parent),
+                  let admin = entry.item.adminDir, admin.hasPrefix(parent + "/.git/worktrees/")
+            else { return nil }
+            return admin
         }
         let repair = Set(entries.compactMap { entry -> String? in
             entry.item.kind == .repository ? entry.item.path : entry.item.parentPath

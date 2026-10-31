@@ -17,8 +17,18 @@ final class HostileRepoTests {
         try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
     }
 
+    private var stores: [GroveStore] = []
+
     isolated deinit {
+        stores.forEach { $0.stop() }
         try? FileManager.default.removeItem(atPath: base)
+    }
+
+    private func makeStore() -> GroveStore {
+        let store = GroveStore(rootPath: root)
+        defer { store.stop() }
+        stores.append(store)
+        return store
     }
 
     private func sh(_ script: String) async throws {
@@ -46,6 +56,7 @@ final class HostileRepoTests {
         """)
 
         let store = GroveStore(rootPath: root)
+        defer { store.stop() }
         await store.scan()
 
         let item = try #require(store.items.first { $0.name == "unpacked-archive" })
@@ -53,6 +64,43 @@ final class HostileRepoTests {
         for suffix in ["fsmonitor", "filter", "gpg"] {
             #expect(!FileManager.default.fileExists(atPath: "\(marker)-\(suffix)"), "\(suffix) command ran")
         }
+    }
+
+    @Test func filterNamesCannotDodgeTheOverride() async throws {
+        let repo = root + "/odd-filter"
+        let marker = base + "/ran-odd"
+        try await sh("""
+        git init -q -b main '\(repo)'
+        cd '\(repo)'
+        echo hello > a.txt
+        echo '* filter=a=b' > .gitattributes
+        git add -A
+        git -c user.name=t -c user.email=t@example.com commit -qm init
+        git config 'filter.a=b.clean' "touch '\(marker)'; cat"
+        touch -t 202001010000 a.txt .gitattributes
+        """)
+        let store = GroveStore(rootPath: root)
+        defer { store.stop() }
+        await store.scan()
+        #expect(store.items.first { $0.name == "odd-filter" }?.git?.branch == "main")
+        #expect(!FileManager.default.fileExists(atPath: marker))
+    }
+
+    @Test func aRepositoryCannotBorrowAnotherOnesWorktrees() async throws {
+        try await sh("""
+        git init -q -b main '\(base)/elsewhere/real'
+        git -C '\(base)/elsewhere/real' -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+        git -C '\(base)/elsewhere/real' worktree add -q -b side '\(base)/elsewhere/real-side'
+        git init -q -b main '\(root)/impostor'
+        echo '\(base)/elsewhere/real/.git' > '\(root)/impostor/.git/commondir'
+        """)
+        let store = GroveStore(rootPath: root)
+        defer { store.stop() }
+        await store.scan()
+        let impostor = try #require(store.items.first { $0.name == "impostor" })
+        #expect(impostor.git?.worktrees.isEmpty == true)
+        #expect(impostor.git?.branches.isEmpty == true)
+        #expect(!store.items.contains { $0.name == "real-side" })
     }
 
     @Test func removingAWorktreeNeverMovesWhatItsGitFilePointsAt() async throws {
@@ -69,6 +117,7 @@ final class HostileRepoTests {
         """)
 
         let store = GroveStore(rootPath: root)
+        defer { store.stop() }
         let undoManager = UndoManager()
         undoManager.groupsByEvent = false
         store.undoManager = undoManager
@@ -91,6 +140,35 @@ final class HostileRepoTests {
         #expect(FileManager.default.fileExists(atPath: rogue.path))
     }
 
+    @Test func fetchAllSkipsRepositoriesThatDefineTheirOwnFetchCommands() async throws {
+        let marker = base + "/ran"
+        try await sh("""
+        git init -q --bare -b main '\(base)/remote.git'
+        for name in honest sneaky; do
+          git init -q -b main "\(root)/$name"
+          git -C "\(root)/$name" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+          git -C "\(root)/$name" remote add origin '\(base)/remote.git'
+        done
+        git -C '\(root)/honest' push -q origin main
+        git -C '\(root)/sneaky' config remote.origin.uploadpack "touch '\(marker)-uploadpack'; git-upload-pack"
+        git -C '\(root)/sneaky' config credential.helper "!touch '\(marker)-credential'"
+        """)
+
+        let store = GroveStore(rootPath: root)
+        defer { store.stop() }
+        await store.scan()
+        store.fetchAll()
+        for _ in 0..<200 where store.toast == nil {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(store.toast?.message == "Fetched 1 of 2 · skipped sneaky, which sets its own fetch commands")
+        #expect(!FileManager.default.fileExists(atPath: marker + "-uploadpack"))
+        #expect(!FileManager.default.fileExists(atPath: marker + "-credential"))
+        for _ in 0..<200 where store.phase != .idle {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
     @Test func worktreesWithRelativePathsStillLinkUp() async throws {
         try await sh("""
         git init -q -b main '\(root)/app'
@@ -99,6 +177,7 @@ final class HostileRepoTests {
         git -c worktree.useRelativePaths=true worktree add -q -b feature '\(root)/app-feature'
         """)
         let store = GroveStore(rootPath: root)
+        defer { store.stop() }
         await store.scan()
         let worktree = try #require(store.items.first { $0.name == "app-feature" })
         #expect(worktree.parentPath == root + "/app")

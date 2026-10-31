@@ -140,10 +140,11 @@ enum Scanner {
             info.commonDir = dirLines[1]
         }
 
+        // If git can't say which filters the repository defines, don't read through any of them.
         let filterOverrides = await untrustedFilterOverrides(path)
-        let status = await Git.run(path, filterOverrides + [
+        let status = filterOverrides == nil ? ShellResult(status: -1, stdout: "", stderr: "") : await Git.run(path, [
             "status", "--porcelain=v2", "--branch", "--show-stash", "--untracked-files=normal", "--ignore-submodules=all",
-        ])
+        ], overrides: filterOverrides ?? [])
         var sawAheadBehind = false
         for line in status.lines {
             if line.hasPrefix("# ") {
@@ -236,7 +237,10 @@ enum Scanner {
             }
         }
 
-        if full {
+        // Branches and worktrees only for a plain repository whose data lives in its own `.git`.
+        // A `commondir` file could otherwise borrow another repository's branches and worktrees.
+        let ownGitDir = normalize(path + "/.git")
+        if full, info.gitDir.map(normalize) == ownGitDir, info.commonDir.map(normalize) == ownGitDir {
             await scanBranches(path: path, into: &info)
             await scanWorktrees(path: path, into: &info)
         }
@@ -248,18 +252,19 @@ enum Scanner {
     /// `git status` re-reads changed files through any clean filter `.gitattributes` names.
     /// Filters defined in the user's global or system config (git-lfs, say) are trusted; ones
     /// defined by the repository itself are switched off for Grove's read.
-    private static func untrustedFilterOverrides(_ path: String) async -> [String] {
-        let result = await Git.run(path, ["config", "--show-scope", "--get-regexp", #"^filter\..*\.(clean|smudge|process)$"#])
+    private static func untrustedFilterOverrides(_ path: String) async -> [(key: String, value: String)]? {
+        guard let keys = await Git.repositoryConfig(path, matching: #"^filter\..*\.(clean|smudge|process)$"#) else { return nil }
         var drivers = Set<String>()
-        for line in result.lines {
-            let parts = line.split(separator: "\t", maxSplits: 1)
-            guard parts.count == 2, !["global", "system"].contains(parts[0]) else { continue }
-            let key = parts[1].split(separator: " ", maxSplits: 1).first.map(String.init) ?? ""
-            guard key.hasPrefix("filter."), let dot = key.lastIndex(of: ".") else { continue }
-            drivers.insert(String(key[key.index(key.startIndex, offsetBy: 7)..<dot]))
+        for key in keys {
+            guard key.hasPrefix("filter."),
+                  let variable = ["clean", "smudge", "process"].first(where: { key.hasSuffix(".\($0)") }),
+                  key.count > "filter.".count + variable.count + 1
+            else { return nil }
+            drivers.insert(String(key.dropFirst("filter.".count).dropLast(variable.count + 1)))
         }
         return drivers.sorted().flatMap { name in
-            ["clean", "smudge", "process"].flatMap { ["-c", "filter.\(name).\($0)="] } + ["-c", "filter.\(name).required=false"]
+            ["clean", "smudge", "process"].map { (key: "filter.\(name).\($0)", value: "") }
+                + [(key: "filter.\(name).required", value: "false")]
         }
     }
 

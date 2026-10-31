@@ -10,11 +10,11 @@ import Testing
 struct TableRemovalTests {
     @Test func tableSurvivesTrashingTheSelectedRow() async throws {
         let base = FileManager.default.temporaryDirectory.appending(path: "grove-ui-\(UUID().uuidString)").path
-        AppSupport.directory = URL(fileURLWithPath: base).appending(path: "support", directoryHint: .isDirectory)
         let script = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "scripts/make-fixtures.sh").path
         try #require(await Shell.run("/bin/bash", [script, base], timeout: 120).ok)
+        AppSupport.directory = URL(fileURLWithPath: base).appending(path: "support", directoryHint: .isDirectory)
 
         let store = GroveStore(rootPath: Scanner.normalize(base + "/code"))
         await store.scan()
@@ -50,6 +50,7 @@ struct TableRemovalTests {
         }
         #expect(store.items.contains { $0.id == login.id })
         window.close()
+        store.stop()
         try? FileManager.default.removeItem(atPath: base)
     }
 
