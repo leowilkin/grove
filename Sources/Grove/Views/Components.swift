@@ -204,3 +204,8 @@ struct ActionTile: View {
         .help(title)
     }
 }
+
+extension Color {
+    /// Tints floating glass bars so table rows scrolling underneath don't show through the text.
+    static let floatingBarTint = Color(nsColor: .windowBackgroundColor).opacity(0.75)
+}

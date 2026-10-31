@@ -54,7 +54,7 @@ struct SidebarView: View {
 
     @ViewBuilder
     private func row(_ item: SidebarItem, count: Int? = -1) -> some View {
-        let n = count == -1 ? store.items(for: item).count : count
+        let n = count == -1 ? store.items(for: item, searching: false).count : count
         Label {
             Text(item.title)
         } icon: {

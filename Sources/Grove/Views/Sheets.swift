@@ -184,7 +184,7 @@ struct BranchCleanupSheet: View {
                     }
                 }
                 .listStyle(.bordered)
-                .frame(minHeight: 200, maxHeight: 400)
+                .frame(height: min(400, CGFloat(plan.total) * 30 + CGFloat(plan.groups.count) * 40 + 12))
                 .padding(.horizontal, 20)
             }
 
@@ -202,6 +202,7 @@ struct BranchCleanupSheet: View {
                     Text(total == 0 ? "Delete" : "Delete \(store.count(total, "Branch"))")
                         .frame(minWidth: 100)
                 }
+                .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
                 .disabled(total == 0 || working)

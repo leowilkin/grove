@@ -18,13 +18,10 @@ struct ItemListView: View {
                     worktreeCount: item.kind == .repository ? store.worktrees(of: item).count : 0
                 )
             }
-            .width(min: 170, ideal: 290)
+            .width(min: 160, ideal: 290)
 
-            TableColumn("Branch", value: \.branchKey, comparator: .localizedStandard) { item in
-                BranchCell(item: item)
-            }
-            .width(min: 90, ideal: 190)
-
+            // Status and activity come before branch: in a narrow window, they're what's
+            // left on screen, and they're what cleanup decisions hang on.
             TableColumn("Status", value: \.statusRank) { item in
                 if showsReason, let reason = store.cleanupReason(item) {
                     Text(reason.label).foregroundStyle(.secondary)
@@ -32,12 +29,17 @@ struct ItemListView: View {
                     StatusPills(item: item)
                 }
             }
-            .width(min: 100, ideal: 210)
+            .width(min: 96, ideal: 210)
 
             TableColumn("Last Activity", value: \.activityKey) { item in
                 ActivityCell(item: item, activity: store.activity(item))
             }
-            .width(min: 92, ideal: 130)
+            .width(min: 88, ideal: 130)
+
+            TableColumn("Branch", value: \.branchKey, comparator: .localizedStandard) { item in
+                BranchCell(item: item)
+            }
+            .width(min: 80, ideal: 190)
 
             TableColumn("Size", value: \.sizeKey) { item in
                 Text(item.size.map(\.bytesLabel) ?? (item.isMissing ? "—" : "…"))
@@ -45,7 +47,7 @@ struct ItemListView: View {
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 56, ideal: 76)
+            .width(min: 52, ideal: 76)
         }
         .contextMenu(forSelectionType: GroveItem.ID.self) { ids in
             // Menus are built outside the view hierarchy, like table cells.
@@ -64,16 +66,19 @@ struct ItemListView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if store.selection.count > 1 {
-                SelectionBar(items: store.selectedItems)
-                    .padding(.bottom, 14)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            VStack(spacing: 10) {
+                ToastSlot()
+                if store.selection.count > 1 {
+                    SelectionBar(items: store.selectedItems)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
+            .padding(.bottom, 14)
         }
         .animation(.smooth(duration: 0.25), value: store.selection.count > 1)
         .inspector(isPresented: $store.showInspector) {
             InspectorView()
-                .inspectorColumnWidth(min: 300, ideal: 350, max: 480)
+                .inspectorColumnWidth(min: 280, ideal: 320, max: 480)
                 .toolbar {
                     ToolbarItem {
                         Button {
@@ -87,10 +92,15 @@ struct ItemListView: View {
                 }
         }
         .navigationTitle(filter.title)
-        .onAppear {
-            let visible = Set(rows.map(\.id))
-            store.selection = store.selection.filter(visible.contains)
-        }
+        .onAppear { keepSelectionVisible(rows) }
+        // A search that hides the selected rows shouldn't leave them in the inspector.
+        .onChange(of: store.searchText) { keepSelectionVisible(store.items(for: filter)) }
+    }
+
+    private func keepSelectionVisible(_ rows: [GroveItem]) {
+        let visible = Set(rows.map(\.id))
+        let kept = store.selection.filter(visible.contains)
+        if kept != store.selection { store.selection = kept }
     }
 
     private var showsReason: Bool {
@@ -275,7 +285,7 @@ private struct SelectionBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .glassEffect(.regular, in: .capsule)
+        .glassEffect(.regular.tint(.floatingBarTint), in: .capsule)
         .shadow(color: .black.opacity(0.1), radius: 14, y: 4)
     }
 }

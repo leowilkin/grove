@@ -284,7 +284,7 @@ final class GroveStore {
         }
     }
 
-    func items(for filter: SidebarItem) -> [GroveItem] {
+    func items(for filter: SidebarItem, searching: Bool = true) -> [GroveItem] {
         var result = visibleItems
         switch filter {
         case .overview, .all:
@@ -313,7 +313,7 @@ final class GroveStore {
         case .project(let path):
             result = result.filter { $0.path == path || $0.parentPath == path }
         }
-        return search(result)
+        return searching ? search(result) : result
     }
 
     private func search(_ list: [GroveItem]) -> [GroveItem] {
@@ -727,7 +727,7 @@ final class GroveStore {
         return TrashPlan(entries: entries, folders: folders, admins: admins, repair: Array(repair), bytes: bytes)
     }
 
-    private func warnings(for item: GroveItem) -> [String] {
+    func warnings(for item: GroveItem) -> [String] {
         var list: [String] = []
         if item.isMissing { return [] }
         guard let git = item.git else {
